@@ -1,0 +1,1389 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="goodsorderm">
+	<select id="list" resultType="com.brcc.business.goodsorderm.vo.GoodsordermVo" parameterType="com.brcc.business.goodsorderm.vo.GoodsordermQueryVo">
+  		SELECT
+		        t.appoint_person_info as "appointPersonInfo",
+		        t.web_can_grab as webCanGrab,
+				t.publish_id as "publishId",
+				t.weight,
+				t.pri_publish_id as "priPublishId",<!--新增拼单中的主单id  -->
+				t.qty,
+				t.amount,
+				t.status,
+				t.platform_id as "platformId",
+				t.create_date as "createDate",	
+				t.pickup_date as "pickupDate",	
+				if(t.pickup_date &lt; now(),'Y','N') as "isTimeOut",   
+				t.limit_time as "limitTime",
+				t.ps as remark,
+				ifnull(t.depend_num,'')  as "dependNum",
+				t.price,
+				t.start_plate as "startPlate",
+				t.end_plate as "endPlate",
+				t.from_type as "fromType",
+				t.prod_desc as "prodDesc",
+				t.init_qty  as "initQty",
+				cast(t.init_amount as decimal(18,2)) as "initAmount", 	
+				cast((t.init_weight* t.price_tax) as decimal(18,2)) as "initAmountTax", 
+				t.get_order_plate as "getOrderPlate",
+				t.good_type_desc as "goodTypeDesc",
+				t.init_weight   as "initWeight",
+				t.sendKM,
+				t.`sender`, 
+				t.`sender_mobile`  as "senderMobile", 
+				t.`receiver_mobile` as "receiverMobile", 
+				t.`receiver`,
+				t.`bill_sender` as "billSender",
+				t.`bill_sender_mobile` as "billSenderMobile", 
+				t.`bill_taker`   as "billTaker", 
+				t.`bill_taker_mobile` as "billTakerMobile",
+				t.vehicle_style_var   as "vehicleStyleVar", 
+				t.`heavy_piece` as  "heavyPiece",
+				t.good_price   as "goodPrice",
+				t.`loss_type`   as "lossType",
+				if(t.`loss_type`='1','定额','定率') as "lossTypeDesc",
+				if(t.`loss_type`='1',CONCAT(t.loss_weight*1000,'（kg/车）'),CONCAT(t.loss_ratio*1000,'（‰/车）')) as "lossWeightDesc",
+				t.loss_ratio  as "lossRatio",
+				t.loss_weight  as "lossWeight",
+				t.`detachable`,
+				if(t.detachable = 0,'不可拆',if(t.detachable = 1,'可拆','不可拆')) as detachableDesc,
+				t.`single_car_weight` as singleCarWeight,
+				ifnull(t.depend_num2,2)  as "dependNum2",
+				'' as publishNum,
+				t.sale_weight  as saleWeight,
+				t.sale_weight as billWeight, 
+				if(t.status = '00','已作废',if(t.status = '20',if(t.sale_weight &gt;0,'已抢单','未抢单'),if(t.`status`='30','已完成', if(t.`status`='60','已终止', '未知')))) as statusDesc,
+<!-- 				(select sum(t1.weight) from TransportationM t1  -->
+<!-- 				where t1.publish_id = t.publish_id  -->
+<!-- 				and t1.platform_id = t.platform_id) as bill_weight,  已抢单量 -->
+				
+				(select ifnull(sum(ifnull(t1.weight,0)),0) from transportationdelivery t1 
+				where t1.publish_id = t.publish_id 
+				and t1.status!='00'
+				and t1.platform_id = t.platform_id) as transWeight,  <!-- 已调度单量 -->
+				
+				(select ifnull(sum(ifnull(t1.weight,0)),0) from transportationdelivery t1 
+				where t1.publish_id = t.publish_id 
+				and t1.status in ('30', '90')
+				and t1.platform_id = t.platform_id) as loadingWeight,  <!-- 已装车重量 -->
+				
+				(select ifnull(count(*),0) from transportationdelivery t1 
+				where t1.publish_id = t.publish_id 
+				and t1.status in ('30', '90')
+				and t1.platform_id = t.platform_id) as loadingNum,  <!-- 已装车数量 -->
+				
+				(select ifnull(sum(ifnull(t1.weight,0)),0) from transportationdelivery t1 
+				where t1.publish_id = t.publish_id 
+				and t1.status='90'
+				and t1.platform_id = t.platform_id) as deliveryWeight,  <!-- 已收货单量 -->
+				
+				(select ifnull(count(*),0) from transportationdelivery t1 
+				where t1.publish_id = t.publish_id 
+				and t1.status='90'
+				and t1.platform_id = t.platform_id) as deliveryNum,  <!-- 已收货数量 -->
+				
+				
+				if(t.appoint_company_id='','N','Y')  "appointFlag",
+				t.qb_type as qbType,
+				t.max_price as maxPrice,
+				(SELECT t1.company_name FROM company t1 where t1.seq_id = t.company_id and t1.platform_id = t.platform_id) as consignorName,
+				t.appoint_team_type  as appointTeamType,
+				t.estimateKM,
+				t.appoint_team_id as appointTeamId,
+				t.send_group as sendGroupType ,
+				(SELECT t1.team_name FROM teamcompany t1 where t1.team_id = t.appoint_team_id limit 0,1) as appointTeamName,
+				if(ifnull(t.send_group,'') = 'ALL','全部', if(ifnull(t.send_group,'') = 'WEB','物流公司',if(ifnull(t.send_group,'') = 'APP','司机',''))) as sendGroup,
+				t.ps2,
+				t.ps3,
+				t.ps4,
+				t.ps5,
+				t.ps1,
+				t.company_id as fdCompanyId,
+				t.docu_pri_sec as docuPriSec,
+				t.docu_type as docuType,
+				t.pin_dan_num  as pinDanNum,
+				t.ds_if_settle as "dsIfSettle",
+				if(t.ds_if_settle=0,'否','是') as "dsIfSettleDesc",
+				t.if_tax_transport  as ifTaxTransport,
+				if(t.if_tax_transport='Y','是','否') as "ifTaxTransportDesc",
+				t.price_tax  as priceTax,
+				t.vat_flow_master_id  as vatFlowMasterId,
+				t.listing_price as "listingPrice",
+				if(ifnull(t.charge_price_type,0)=0,'元/每车','元/吨') as "chargePriceType",
+		        ifnull(t.charge_price,0) as "chargePrice",
+		        t.pick_up_goods_name as "pickUpGoodsName",
+		        if(t.from_type = 'JK_U9', '新大宗采购',if(t.from_type = 'JK_U10', if(t.logistics_mark='X', '大宗销售', '大宗采购'),IF(t.from_type = 'JK_U11', IF( t.logistics_mark = 'X', '销售物流', '采购物流' ), if(t.from_type = 'DS', '销售电商', if(t.from_type = 'PT', '平台货源',
+		        if(t.from_type = 'JK_U8', if(t.logistics_mark='X', '大宗销售', '大宗采购'), '平台货源')))))) as docOrigin,
+		        ifnull(v.vat_flow_master_name,'') as "vatFlowMasterName",
+		        t.bill_taker_mobile as billTakerMobile,
+			    t.owner_adjust_flag as ownerAdjustFlag,
+			    t.owner_adjust_type as ownerAdjustType,
+			    t.owner_adjust_amt  as ownerAdjustAmt,
+			    t.dq_flag  as dqFlag,
+			    t.dq_stt_date as dqSttDate,
+			    t.dq_end_date as  dqEndDate,
+				t.add_weight_type as  addWeightType,
+			    t.add_weight_flag as  addWeightFlag,
+			    t.contract_number as  contractNumber,
+			    t.contract_type as contractType,
+			    t.add_weight_flag as  addWeightFlag,
+				t.single_car_weight as  singleCarWeight,
+				ifnull((select sum(add_weight) from goodsorderaddweightdetail g1 where g1.publish_id = t.publish_id),0) as addWeight,
+				ifnull((select sum(add_carnum) from goodsorderaddweightdetail g1 where g1.publish_id = t.publish_id),0) as addCarCount
+		   FROM goodsorderm AS t left join vatflowmaster v on (t.vat_flow_master_id =v.vat_flow_master_id)
+		        left join company t1 on (t1.seq_id = t.company_id and t1.platform_id = t.platform_id)
+		   
+		WHERE 1=1
+		AND t.status != '10'
+		<!-- 引用公用查询 -->
+		 <include refid="common.filterQuery" />
+		 <include refid="common.commonQuery" />  
+		<if test="platformId != null and platformId!=''">
+			and t.platform_id = #{platformId}
+		</if>
+		<if test="vatFlowMasterName != null and vatFlowMasterName!=''">
+			and v.vat_flow_master_name like concat('%',#{vatFlowMasterName},'%')
+		</if>
+		<if test="companyId !='' and companyId != null">
+			<if test='isAutoDisplay =="0"'>
+				and t.is_auto_display = '0'
+			</if> 
+			<if test='isAutoDisplay =="1"'>
+				and t.is_auto_display = '1'
+			</if> 
+		</if>
+		<if test="carNum !='' and carNum != null">
+		and EXISTS( SELECT 
+            1
+        FROM
+            transportationdelivery t1,
+            vehicle t2
+        WHERE
+            t1.vehicle_id = t2.vehicle_id
+                AND t1.platform_id = t2.platform_id
+                and t1.publish_id = t.publish_id
+                and t2.vehicle_num like concat('%',#{carNum},'%'))
+		</if>
+		
+		<if test="appointTeam !='' and appointTeam != null">
+			<if test='appointTeam =="01"'>
+		       and (t.appoint_team_type is not null and t.appoint_team_type !='1')
+		   </if>
+		    <if test='appointTeam =="02"'>
+		       and (t.appoint_team_type is  null or t.appoint_team_type ='1')
+		    </if>
+		</if>
+		<if test="getAmountS !='' and getAmountS != null">
+			and if(t.status="60",0,t.weight)&gt;= round(#{getAmountS},2)
+		</if>
+		 <if test="taxTransport !='' and taxTransport !=null">
+				and t.if_tax_transport = #{taxTransport}
+		</if> 
+		
+		<if test="ownerAdjustFlag !='' and ownerAdjustFlag !=null">
+			and t.owner_adjust_flag = #{ownerAdjustFlag}
+		</if>
+		<if test="getAmountE !='' and getAmountE !=null">
+			and if(t.status="60",0,t.weight) &lt;= round(#{getAmountE},2)
+		</if>		
+		<if test="billSender !='' and billSender !=null">
+			and t.bill_sender like CONCAT('%',#{billSender},'%')
+		</if>
+		<if test="orderId !='' and orderId !=null">
+			and t.publish_id like CONCAT('%',#{orderId},'%')
+		</if>	
+		<if test="getOrderPlate !='' and getOrderPlate !=null">
+			and t.get_order_plate like CONCAT('%',#{getOrderPlate},'%')
+		</if>
+		<if test="startPlate !='' and startPlate !=null">
+			and t.start_plate like CONCAT('%',#{startPlate},'%')
+		</if>
+		<if test="endPlate !='' and endPlate !=null">
+			and t.end_plate like CONCAT('%',#{endPlate},'%')
+		</if>
+
+		 <if test="rqStart !=null">
+
+			and t.create_date &gt;= #{rqStart}
+		</if>  
+		
+		<if test="rqEnd !=null">
+			and t.create_date &lt;= #{rqEnd}
+		</if> 
+
+		<if test="status !='' and status !=null">
+			<if test='status=="00"'>
+				and t.status = #{status}	
+			</if>
+			
+			<if test='status=="20"'>
+				and  t.status !='00' and t.sale_weight &gt;0 
+			</if>
+			
+			<if test='status=="30"'>
+				and  t.status !='00' and t.sale_weight = 0 
+			</if>
+			
+			<if test='status=="60"'>
+			  and t.status = #{status}
+			</if>
+			</if>
+		<if test="publishIdD !='' and publishIdD !=null">
+          and  t.publish_id = #{publishIdD}
+        </if>	
+		
+		<if test="dependNum !='' and dependNum !=null">
+			and (t.depend_num like CONCAT('%',#{dependNum},'%')
+			or
+			t.depend_num2 like CONCAT('%',#{dependNum},'%'))
+		</if>
+		<if test="goodType !='' and goodType !=null">
+			and t.good_type = #{goodType}
+		</if>
+		<if test="fromType !='' and fromType !=null">
+			<if test='fromType=="JK_U8"'>
+				and t.from_type in ("JK_U8","JK_U9","JK_U10")
+			</if>
+			<if test='fromType !="JK_U8"'>
+				and t.from_type = #{fromType}
+			</if>
+			
+		</if>
+		<if test="pinDanNum !='' and pinDanNum !=null">
+			and t.pin_dan_num = #{pinDanNum}
+		</if>
+		<if test="pinDan !='' and pinDan !=null">
+		  <if test='pinDan =="1"'>
+		    and t.pin_dan_num is not null
+		  </if>
+		   <if test='pinDan =="2"'>
+		     and t.pin_dan_num is null
+		   </if>
+		  </if>
+		<if test="prodDesc !='' and prodDesc !=null">
+			and t.prod_desc like CONCAT('%',#{prodDesc},'%')
+		</if>
+		<if test="docuType !='' and docuType !=null">
+			<if test='docuType =="1"'>
+				and t.docu_type = '1'
+			</if>
+		    	
+		  <if test='docuType =="0"'>
+		    and (t.docu_type != '1') 
+		 </if>
+		 </if>
+    <!-- 报价单筛选 -->	
+    	<if test ="talkPrice!='' and talkPrice !=null">	
+		   and (ifnull((select count(1) from goodsorderquotation s where s.publish_id=t.publish_id and s.plat_form_id = t.platform_id and s.status='10'),0) > 0
+            and
+          ifnull((select count(1) from goodsorderquotation s where s.publish_id=t.publish_id and s.plat_form_id = t.platform_id and s.status='20'),0) = 0
+            and 
+          t.qb_type =1)
+		</if>	
+		<if test ="dsIfSettle !='' and dsIfSettle !=null">	
+			and t.ds_if_settle = #{dsIfSettle}
+		</if>
+		<if test ="detachable !='' and detachable !=null">	
+			and t.detachable= #{detachable}
+		</if>
+		<if test ="ifTaxTransport !='' and ifTaxTransport !=null">	
+			and t.if_tax_transport=#{ifTaxTransport}
+		</if>
+		<if test ="contractNumber != '' and  contractNumber !=null ">
+			and t.contract_number like CONCAT('%',#{contractNumber},'%')
+		</if>
+		<!-- 明细查看 -->
+		<if test ="publishIdD !='' and publishIdD !=null">	
+           limit 0,1
+       </if>
+		<if test ="fromRow !=null">
+			limit #{fromRow},#{toRow}
+		</if>
+
+	</select>
+
+	<select id="listCount1111" resultType="java.lang.Long" parameterType="com.brcc.business.goodsorderm.vo.GoodsordermQueryVo">
+			select count(1) as cc
+		FROM goodsorderm AS t left join vatflowmaster v on (t.vat_flow_master_id =v.vat_flow_master_id)
+		left join company t1 on (t1.seq_id = t.company_id and t1.platform_id = t.platform_id)
+
+		WHERE 1=1
+		AND t.status != '10'
+		<!-- 引用公用查询 -->
+		<include refid="common.filterQuery" />
+		<include refid="common.commonQuery" />
+		<if test="platformId != null and platformId!=''">
+			and t.platform_id = #{platformId}
+		</if>
+		<if test="vatFlowMasterName != null and vatFlowMasterName!=''">
+			and v.vat_flow_master_name like concat('%',#{vatFlowMasterName},'%')
+		</if>
+		<if test="companyId !='' and companyId != null">
+			<if test='isAutoDisplay =="0"'>
+				and t.is_auto_display = '0'
+			</if>
+			<if test='isAutoDisplay =="1"'>
+				and t.is_auto_display = '1'
+			</if>
+		</if>
+		<if test="carNum !='' and carNum != null">
+			and EXISTS( SELECT
+			1
+			FROM
+			transportationdelivery t1,
+			vehicle t2
+			WHERE
+			t1.vehicle_id = t2.vehicle_id
+			AND t1.platform_id = t2.platform_id
+			and t1.publish_id = t.publish_id
+			and t2.vehicle_num like concat('%',#{carNum},'%'))
+		</if>
+
+		<if test="appointTeam !='' and appointTeam != null">
+			<if test='appointTeam =="01"'>
+				and (t.appoint_team_type is not null and t.appoint_team_type !='1' )
+			</if>
+			<if test='appointTeam =="02"'>
+				and (t.appoint_team_type is  null or t.appoint_team_type ='1')
+			</if>
+		</if>
+		<if test="getAmountS !='' and getAmountS != null">
+			and if(t.status="60",0,t.weight) &gt;= round(#{getAmountS},2)
+		</if>
+		<if test="taxTransport !='' and taxTransport !=null">
+			and t.if_tax_transport = #{taxTransport}
+		</if>
+
+		<if test="ownerAdjustFlag !='' and ownerAdjustFlag !=null">
+			and t.owner_adjust_flag = #{ownerAdjustFlag}
+		</if>
+		<if test="getAmountE !='' and getAmountE !=null">
+			and if(t.status="60",0,t.weight) &lt;= round(#{getAmountE},2)
+		</if>
+		<if test="billSender !='' and billSender !=null">
+			and t.bill_sender like CONCAT('%',#{billSender},'%')
+		</if>
+		<if test="orderId !='' and orderId !=null">
+			and t.publish_id like CONCAT('%',#{orderId},'%')
+		</if>
+		<if test="getOrderPlate !='' and getOrderPlate !=null">
+			and t.get_order_plate like CONCAT('%',#{getOrderPlate},'%')
+		</if>
+		<if test="startPlate !='' and startPlate !=null">
+			and t.start_plate like CONCAT('%',#{startPlate},'%')
+		</if>
+		<if test="endPlate !='' and endPlate !=null">
+			and t.end_plate like CONCAT('%',#{endPlate},'%')
+		</if>
+
+		<if test="rqStart !=null">
+
+			and t.create_date &gt;= #{rqStart}
+		</if>
+
+		<if test="rqEnd !=null">
+			and t.create_date &lt;= #{rqEnd}
+		</if>
+
+		<if test="status !='' and status !=null">
+			<if test='status=="00"'>
+				and t.status = #{status}
+			</if>
+
+			<if test='status=="20"'>
+				and  t.status !='00' and t.sale_weight &gt;0
+			</if>
+
+			<if test='status=="30"'>
+				and  t.status !='00' and t.sale_weight = 0
+			</if>
+
+			<if test='status=="60"'>
+				and t.status = #{status}
+			</if>
+		</if>
+		<if test="publishIdD !='' and publishIdD !=null">
+			and  t.publish_id = #{publishIdD}
+		</if>
+
+		<if test="dependNum !='' and dependNum !=null">
+			and (t.depend_num like CONCAT('%',#{dependNum},'%')
+			or
+			t.depend_num2 like CONCAT('%',#{dependNum},'%'))
+		</if>
+		<if test="goodType !='' and goodType !=null">
+			and t.good_type = #{goodType}
+		</if>
+		<if test="fromType !='' and fromType !=null">
+			<if test='fromType=="JK_U8"'>
+				and t.from_type in ("JK_U8","JK_U9","JK_U10")
+			</if>
+			<if test='fromType !="JK_U8"'>
+				and t.from_type = #{fromType}
+			</if>
+
+		</if>
+		<if test="pinDanNum !='' and pinDanNum !=null">
+			and t.pin_dan_num = #{pinDanNum}
+		</if>
+		<if test="pinDan !='' and pinDan !=null">
+			<if test='pinDan =="1"'>
+				and t.pin_dan_num is not null
+			</if>
+			<if test='pinDan =="2"'>
+				and t.pin_dan_num is null
+			</if>
+		</if>
+		<if test="prodDesc !='' and prodDesc !=null">
+			and t.prod_desc like CONCAT('%',#{prodDesc},'%')
+		</if>
+		<if test="docuType !='' and docuType !=null">
+			<if test='docuType =="1"'>
+				and t.docu_type = '1'
+			</if>
+
+			<if test='docuType =="0"'>
+				and (t.docu_type != '1')
+			</if>
+		</if>
+		<!-- 报价单筛选 -->
+		<if test ="talkPrice!='' and talkPrice !=null">
+			and (ifnull((select count(1) from goodsorderquotation s where s.publish_id=t.publish_id and s.plat_form_id = t.platform_id and s.status='10'),0) > 0
+			and
+			ifnull((select count(1) from goodsorderquotation s where s.publish_id=t.publish_id and s.plat_form_id = t.platform_id and s.status='20'),0) = 0
+			and
+			t.qb_type =1)
+		</if>
+		<if test ="dsIfSettle !='' and dsIfSettle !=null">
+			and t.ds_if_settle = #{dsIfSettle}
+		</if>
+		<if test ="detachable !='' and detachable !=null">
+			and t.detachable= #{detachable}
+		</if>
+		<if test ="ifTaxTransport !='' and ifTaxTransport !=null">
+			and t.if_tax_transport=#{ifTaxTransport}
+		</if>
+		<!-- 明细查看 -->
+		<if test ="publishIdD !='' and publishIdD !=null">
+			limit 0,1
+		</if>
+	</select>
+
+
+	<select id="querySavePublishCount" resultType="java.lang.Long" parameterType="com.brcc.business.goodsorderm.vo.GoodsordermQueryVo">
+		select count(1) as cc
+		FROM goodsorderm AS t left join vatflowmaster v on (t.vat_flow_master_id =v.vat_flow_master_id)
+		WHERE 1=1
+		AND t.platform_id = #{platformId}
+		AND t.status >='10'
+		AND t.from_type= 'PT'
+		AND t.if_save_publish='1'
+		<!-- 引用公用查询 -->
+		<include refid="common.filterQuery" />
+		<include refid="common.commonQuery" />
+		<if test="vatFlowMasterName != null and vatFlowMasterName!=''">
+			and t.platform_id = #{platformId}
+		</if>
+		<if test="vatFlowMasterName != null and vatFlowMasterName!=''">
+			and v.vat_flow_master_name like concat('%',#{vatFlowMasterName},'%')
+		</if>
+		<if test="companyId !='' and companyId != null">
+			<if test='isAutoDisplay =="0"'>
+				and t.is_auto_display = '0'
+			</if>
+			<if test='isAutoDisplay =="1"'>
+				and t.is_auto_display = '1'
+			</if>
+		</if>
+		<if test="carNum !='' and carNum != null">
+			and EXISTS( SELECT
+			1
+			FROM
+			transportationdelivery t1,
+			vehicle t2
+			WHERE
+			t1.vehicle_id = t2.vehicle_id
+			AND t1.platform_id = t2.platform_id
+			and t1.publish_id = t.publish_id
+			and t2.vehicle_num like concat('%',#{carNum},'%'))
+		</if>
+
+		<if test="appointTeam !='' and appointTeam != null">
+			<if test='appointTeam =="01"'>
+				and (t.appoint_team_type is not null and t.appoint_team_type !='1' )
+			</if>
+			<if test='appointTeam =="02"'>
+				and (t.appoint_team_type is  null or t.appoint_team_type ='1')
+			</if>
+		</if>
+		<if test="getAmountS !='' and getAmountS != null">
+			and if(t.status="60",0,t.weight) &gt;= round(#{getAmountS},2)
+		</if>
+		<if test="taxTransport !='' and taxTransport !=null">
+			and t.if_tax_transport = #{taxTransport}
+		</if>
+
+		<if test="ownerAdjustFlag !='' and ownerAdjustFlag !=null">
+			and t.owner_adjust_flag = #{ownerAdjustFlag}
+		</if>
+		<if test="getAmountE !='' and getAmountE !=null">
+			and if(t.status="60",0,t.weight) &lt;= round(#{getAmountE},2)
+		</if>
+		<if test="billSender !='' and billSender !=null">
+			and t1.company_name like CONCAT('%',#{billSender},'%')
+		</if>
+		<if test="orderId !='' and orderId !=null">
+			and t.publish_id like CONCAT('%',#{orderId},'%')
+		</if>
+		<if test="getOrderPlate !='' and getOrderPlate !=null">
+			and t.get_order_plate like CONCAT('%',#{getOrderPlate},'%')
+		</if>
+		<if test="startPlate !='' and startPlate !=null">
+			and t.start_plate like CONCAT('%',#{startPlate},'%')
+		</if>
+		<if test="endPlate !='' and endPlate !=null">
+			and t.end_plate like CONCAT('%',#{endPlate},'%')
+		</if>
+
+		<if test="rqStart !=null">
+
+			and t.create_date &gt;= #{rqStart}
+		</if>
+
+		<if test="rqEnd !=null">
+			and t.create_date &lt;= #{rqEnd}
+		</if>
+
+		<if test="status !='' and status !=null">
+			<if test='status=="00"'>
+				and t.status = #{status}
+			</if>
+
+			<if test='status=="20"'>
+				and  t.status !='00' and t.sale_weight &gt;0
+			</if>
+
+			<if test='status=="30"'>
+				and  t.status !='00' and t.sale_weight = 0
+			</if>
+
+			<if test='status=="60"'>
+				and t.status = #{status}
+			</if>
+		</if>
+		<if test="publishIdD !='' and publishIdD !=null">
+			and  t.publish_id = #{publishIdD}
+		</if>
+
+		<if test="dependNum !='' and dependNum !=null">
+			and (t.depend_num like CONCAT('%',#{dependNum},'%')
+			or
+			t.depend_num2 like CONCAT('%',#{dependNum},'%'))
+		</if>
+		<if test="goodType !='' and goodType !=null">
+			and t.good_type = #{goodType}
+		</if>
+		<if test="fromType !='' and fromType !=null">
+			<if test='fromType=="JK_U8"'>
+				and t.from_type in ("JK_U8","JK_U9","JK_U10")
+			</if>
+			<if test='fromType !="JK_U8"'>
+				and t.from_type = #{fromType}
+			</if>
+		</if>
+		<if test="pinDanNum !='' and pinDanNum !=null">
+			and t.pin_dan_num = #{pinDanNum}
+		</if>
+		<if test="pinDan !='' and pinDan !=null">
+			<if test='pinDan =="1"'>
+				and t.pin_dan_num is not null
+			</if>
+			<if test='pinDan =="2"'>
+				and t.pin_dan_num is null
+			</if>
+		</if>
+		<if test="prodDesc !='' and prodDesc !=null">
+			and t.prod_desc like CONCAT('%',#{prodDesc},'%')
+		</if>
+		<if test="docuType !='' and docuType !=null">
+			<if test='docuType =="1"'>
+				and t.docu_type = '1'
+			</if>
+
+			<if test='docuType =="0"'>
+				and (t.docu_type != '1')
+			</if>
+		</if>
+		<!-- 报价单筛选 -->
+		<if test ="talkPrice!='' and talkPrice !=null">
+			and (ifnull((select count(1) from goodsorderquotation s where s.publish_id=t.publish_id and s.plat_form_id = t.platform_id and s.status='10'),0) > 0
+			and
+			ifnull((select count(1) from goodsorderquotation s where s.publish_id=t.publish_id and s.plat_form_id = t.platform_id and s.status='20'),0) = 0
+			and
+			t.qb_type =1)
+		</if>
+		<if test ="dsIfSettle !='' and dsIfSettle !=null">
+			and t.ds_if_settle = #{dsIfSettle}
+		</if>
+		<if test ="detachable !='' and detachable !=null">
+			and t.detachable= #{detachable}
+		</if>
+		<if test ="ifTaxTransport !='' and ifTaxTransport !=null">
+			and t.if_tax_transport=#{ifTaxTransport}
+		</if>
+	</select>
+
+	<select id="querySavePublish" resultType="com.brcc.business.goodsorderm.vo.GoodsordermVo" parameterType="com.brcc.business.goodsorderm.vo.GoodsordermQueryVo">
+  		SELECT
+		        t.appoint_person_info as "appointPersonInfo" ,
+				t.publish_id as "publishId",
+				t.weight,
+				t.qty,
+				t.amount,
+				t.status,
+				t.platform_id as "platformId",
+				t.create_date as createDate,
+				t.pickup_date as pickupDate,
+				if(t.pickup_date &lt; now(),'Y','N') as "isTimeOut",   
+				t.limit_time as "limitTime",
+				t.ps as remark,
+				ifnull(t.depend_num,'')  as "dependNum",
+				t.price,
+				t.start_plate as "startPlate",
+				t.end_plate as "endPlate",
+				t.from_type as "fromType",
+				t.prod_desc as "prodDesc",
+				t.init_qty  as "initQty",
+				cast(t.init_amount as decimal(18,2)) as "initAmount", 	
+				cast((t.init_weight* t.price_tax) as decimal(18,2)) as "initAmountTax", 
+				t.get_order_plate as "getOrderPlate",
+				t.good_type_desc as "goodTypeDesc",
+				t.init_weight   as "initWeight",
+				t.sendKM,
+				t.`sender`, 
+				t.`sender_mobile`  as "senderMobile", 
+				t.`receiver_mobile` as "receiverMobile", 
+				t.`receiver`,
+				t.`bill_sender` as "billSender",
+				t.`bill_sender_mobile` as "billSenderMobile", 
+				t.`bill_taker`   as "billTaker", 
+				t.`bill_taker_mobile` as "billTakerMobile",
+				t.vehicle_style_var   as "vehicleStyleVar", 
+				t.`heavy_piece` as  "heavyPiece",
+				t.good_price   as "goodPrice",
+				t.`loss_type`   as "lossType",
+				if(t.`loss_type`='1','定额','定率') as "lossTypeDesc",
+				if(t.`loss_type`='1',CONCAT(t.loss_weight*1000,'（kg/车）'),CONCAT(t.loss_ratio*1000,'（‰/车）')) as "lossWeightDesc",
+				t.loss_ratio  as "lossRatio",
+				t.loss_weight  as "lossWeight",
+				t.`detachable`,
+				if(t.detachable = 0,'不可拆',if(t.detachable = 1,'可拆','不可拆')) as detachableDesc,
+				ifnull(t.depend_num2,2)  as "dependNum2",
+				'' as publishNum,
+				t.sale_weight  as saleWeight,
+				t.sale_weight as billWeight,  
+				if(t.status = '00','已作废',if(t.status = '20',if(t.sale_weight &gt;0,'已抢单','未抢单'),if(t.`status`='30','已完成', if(t.`status`='60','已终止', if(t.`status`='10','新增','未知'))))) as statusDesc,
+				(select ifnull(sum(ifnull(t1.weight,0)),0) from transportationdelivery t1 
+				where t1.publish_id = t.publish_id 
+				and t.status!='00'
+				and t1.status!='00'
+				and t1.platform_id = t.platform_id) as transWeight, 
+				if(t.appoint_company_id='','N','Y')  "appointFlag",
+				t.qb_type as qbType,
+				t.max_price as maxPrice,
+				(SELECT t1.company_name FROM company t1 where t1.seq_id = t.company_id and t1.platform_id = t.platform_id) as consignorName,
+				t.appoint_team_type  as appointTeamType,
+				t.estimateKM,
+				t.appoint_team_id as appointTeamId,
+				t.send_group as sendGroupType ,
+				(SELECT t1.team_name FROM teamcompany t1 where t1.team_id = t.appoint_team_id limit 0,1) as appointTeamName,
+				if(ifnull(t.send_group,'') = 'ALL','全部', if(ifnull(t.send_group,'') = 'WEB','WEB用户',if(ifnull(t.send_group,'') = 'APP','手机APP用户',''))) as sendGroup,
+				t.ps2,
+				t.ps3,
+				t.ps4,
+				t.ps5,
+				t.ps1,
+				t.company_id as fdCompanyId,
+				t.docu_pri_sec as docuPriSec,
+				t.docu_type as docuType,
+				t.pin_dan_num  as pinDanNum,
+				t.ds_if_settle as "dsIfSettle",
+				if(t.ds_if_settle=0,'否','是') as "dsIfSettleDesc",
+				t.if_tax_transport  as ifTaxTransport,
+				if(t.if_tax_transport='Y','是','否') as "ifTaxTransportDesc",
+				t.price_tax  as priceTax,
+				t.vat_flow_master_id  as vatFlowMasterId,
+				t.listing_price as "listingPrice",
+				if(ifnull(t.charge_price_type,0)=0,'元/每车','元/吨') as "chargePriceType",
+		        ifnull(t.charge_price,0) as "chargePrice",
+		        t.pick_up_goods_name as "pickUpGoodsName",
+		        if(t.from_type = 'JK_U9', '新大宗采购',IF(t.from_type = 'JK_U11', IF( t.logistics_mark = 'X', '销售物流', '采购物流' ), if(t.from_type = 'DS', '销售电商', if(t.from_type = 'PT', '平台货源',
+		        if(t.from_type = 'JK_U8', if(t.logistics_mark='X', '大宗销售', '大宗采购'), '平台货源'))))) as docOrigin,
+		        ifnull(v.vat_flow_master_name,'') as "vatFlowMasterName",
+		        t.bill_taker_mobile as billTakerMobile,
+			    t.pri_publish_id as priPublishId ,
+			    t.contract_number as contractNumber,
+		        t.appoint_team_type  as appointTeamType
+		   FROM goodsorderm AS t left join vatflowmaster v on (t.vat_flow_master_id =v.vat_flow_master_id)
+				WHERE 1=1
+				AND t.platform_id = #{platformId}
+				AND t.status >='10'
+				AND t.from_type= 'PT'
+				AND t.if_save_publish='1'
+		<!-- 引用公用查询 -->
+	 	<include refid="common.filterQuery" />
+		<include refid="common.commonQuery" />  
+		<if test="vatFlowMasterName != null and vatFlowMasterName!=''">
+			and t.platform_id = #{platformId}
+		</if>
+		<if test="vatFlowMasterName != null and vatFlowMasterName!=''">
+			and v.vat_flow_master_name like concat('%',#{vatFlowMasterName},'%')
+		</if>
+		<if test="companyId !='' and companyId != null">
+			<if test='isAutoDisplay =="0"'>
+				and t.is_auto_display = '0'
+			</if> 
+			<if test='isAutoDisplay =="1"'>
+				and t.is_auto_display = '1'
+			</if> 
+		</if>
+		<if test="carNum !='' and carNum != null">
+		and EXISTS( SELECT 
+            1
+        FROM
+            transportationdelivery t1,
+            vehicle t2
+        WHERE
+            t1.vehicle_id = t2.vehicle_id
+                AND t1.platform_id = t2.platform_id
+                and t1.publish_id = t.publish_id
+                and t2.vehicle_num like concat('%',#{carNum},'%'))
+		</if>
+		
+		<if test="appointTeam !='' and appointTeam != null">
+			<if test='appointTeam =="01"'>
+		       and (t.appoint_team_type is not null and t.appoint_team_type !='1' )
+		   </if>
+		    <if test='appointTeam =="02"'>
+		        and (t.appoint_team_type is  null or t.appoint_team_type ='1') 
+		    </if>
+		</if>
+		<if test="getAmountS !='' and getAmountS != null">
+			and if(t.status="60",0,t.weight) &gt;= round(#{getAmountS},2)
+		</if>
+		 <if test="taxTransport !='' and taxTransport !=null">
+				and t.if_tax_transport = #{taxTransport}
+		</if> 
+		
+		<if test="ownerAdjustFlag !='' and ownerAdjustFlag !=null">
+			and t.owner_adjust_flag = #{ownerAdjustFlag}
+		</if>
+		<if test="getAmountE !='' and getAmountE !=null">
+			and if(t.status="60",0,t.weight) &lt;= round(#{getAmountE},2)
+		</if>		
+		<if test="billSender !='' and billSender !=null">
+			and t1.company_name like CONCAT('%',#{billSender},'%')
+		</if>
+		<if test="orderId !='' and orderId !=null">
+			and t.publish_id like CONCAT('%',#{orderId},'%')
+		</if>	
+		<if test="getOrderPlate !='' and getOrderPlate !=null">
+			and t.get_order_plate like CONCAT('%',#{getOrderPlate},'%')
+		</if>
+		<if test="startPlate !='' and startPlate !=null">
+			and t.start_plate like CONCAT('%',#{startPlate},'%')
+		</if>
+		<if test="endPlate !='' and endPlate !=null">
+			and t.end_plate like CONCAT('%',#{endPlate},'%')
+		</if>
+
+		 <if test="rqStart !=null">
+
+			and t.create_date &gt;= #{rqStart}
+		</if>  
+		
+		<if test="rqEnd !=null">
+			and t.create_date &lt;= #{rqEnd}
+		</if> 
+
+		<if test="status !='' and status !=null">
+			<if test='status=="00"'>
+				and t.status = #{status}	
+			</if>
+			
+			<if test='status=="20"'>
+				and  t.status !='00' and t.sale_weight &gt;0 
+			</if>
+			
+			<if test='status=="30"'>
+				and  t.status !='00' and t.sale_weight = 0 
+			</if>
+			
+			<if test='status=="60"'>
+			  and t.status = #{status}
+			</if>
+			</if>
+		<if test="publishIdD !='' and publishIdD !=null">
+          and  t.publish_id = #{publishIdD}
+        </if>	
+		
+		<if test="dependNum !='' and dependNum !=null">
+			and (t.depend_num like CONCAT('%',#{dependNum},'%')
+			or
+			t.depend_num2 like CONCAT('%',#{dependNum},'%'))
+		</if>
+		<if test="goodType !='' and goodType !=null">
+			and t.good_type = #{goodType}
+		</if>
+		<if test="fromType !='' and fromType !=null">
+			<if test='fromType=="JK_U8"'>
+				and t.from_type in ("JK_U8","JK_U9","JK_U10")
+			</if>
+			<if test='fromType !="JK_U8"'>
+				and t.from_type = #{fromType}
+			</if>
+		</if>
+		<if test="pinDanNum !='' and pinDanNum !=null">
+			and t.pin_dan_num = #{pinDanNum}
+		</if>
+		<if test="pinDan !='' and pinDan !=null">
+		  <if test='pinDan =="1"'>
+		    and t.pin_dan_num is not null
+		  </if>
+		   <if test='pinDan =="2"'>
+		     and t.pin_dan_num is null
+		   </if>
+		  </if>
+		<if test="prodDesc !='' and prodDesc !=null">
+			and t.prod_desc like CONCAT('%',#{prodDesc},'%')
+		</if>
+		<if test="docuType !='' and docuType !=null">
+			<if test='docuType =="1"'>
+				and t.docu_type = '1'
+			</if>
+		    	
+		  	<if test='docuType =="0"'>
+		    	and (t.docu_type != '1') 
+		 	</if>
+		</if>
+    <!-- 报价单筛选 -->	
+    	<if test ="talkPrice!='' and talkPrice !=null">	
+		   and (ifnull((select count(1) from goodsorderquotation s where s.publish_id=t.publish_id and s.plat_form_id = t.platform_id and s.status='10'),0) > 0
+            and
+          ifnull((select count(1) from goodsorderquotation s where s.publish_id=t.publish_id and s.plat_form_id = t.platform_id and s.status='20'),0) = 0
+            and 
+          t.qb_type =1)
+		</if>	
+		<if test ="dsIfSettle !='' and dsIfSettle !=null">	
+			and t.ds_if_settle = #{dsIfSettle}
+		</if>
+		<if test ="detachable !='' and detachable !=null">	
+			and t.detachable= #{detachable}
+		</if>
+		<if test="contractNumber != null and contractNumber != ''">
+			and t.contract_number like CONCAT('%',#{contractNumber},'%')
+		</if>
+		<if test ="ifTaxTransport !='' and ifTaxTransport !=null">	
+			and t.if_tax_transport=#{ifTaxTransport}
+		</if>
+		order  by
+		if(t.appoint_company_id=0,0,1) desc , 
+		if(t.docu_type='1' || t.docu_type='2',
+		if(t.docu_pri_sec='1',t.publish_id ,t.pri_publish_id) , t.publish_id ) desc,
+		if(t.docu_type='1' || t.docu_type='2',t.docu_pri_sec*-1,t.publish_id) desc,
+		if(t.weight - t.trans_weight > 0 , 1 , 0) desc 
+		<!-- 明细查看 -->
+		<if test ="publishIdD !='' and publishIdD !=null">	
+           limit 0,1
+       </if>
+       </select>
+
+	<select id="listTaxGoodBillCount" parameterType="com.brcc.business.goodsorderm.vo.GoodsordermQueryVo" resultType="java.lang.Long">
+		select count(1) as cc
+		FROM  (vatflowdetail v,goodsorderm t)
+		left JOIN company c on(c.seq_id=v.vat_client_id)
+		WHERE 1=1
+		AND t.platform_id = #{platformId}
+		and t.if_tax_transport='Y'
+		and t.status !='10'
+		<if test="companyId != null and companyId!=''">
+			and v.vat_carry_id=#{companyId}
+			and t.vat_flow_master_id = v.vat_flow_master_id
+		</if>
+		<!-- 引用公用查询 -->
+		<include refid="common.filterQuery" />
+		<if test="companyId != null and companyId != ''">
+			<if test="isAutoDisplay != null and isAutoDisplay != ''">
+				and t.is_auto_display = #{isAutoDisplay}
+			</if>
+		</if>
+		<if test="carNum !='' and carNum != null">
+			and EXISTS( SELECT
+			1
+			FROM
+			transportationdelivery t1,
+			vehicle t2
+			WHERE
+			t1.vehicle_id = t2.vehicle_id
+			AND t1.platform_id = t2.platform_id
+			and t1.publish_id = t.publish_id
+			and t2.vehicle_num like concat('%',#{carNum},'%')
+			)
+		</if>
+		<if test="appointTeam !='' and appointTeam != null">
+			<if test="appointTeam == '01'">
+				and (t.appoint_team_type is not null and t.appoint_team_type !='1' )
+			</if>
+			<if test="appointTeam == '02'">
+				and (t.appoint_team_type is  null or t.appoint_team_type ='1')
+			</if>
+		</if>
+		<if test="getAmountS !='' and getAmountS != null">
+			and if(t.status="60",0,t.weight) &gt;= round(#{getAmountS},2)
+		</if>
+		<!-- 含税 -->
+		<if test="taxTransport !='' and taxTransport != null">
+			and t.if_tax_transport = #{taxTransport}
+		</if>
+		<if test="getAmountE !='' and getAmountE != null">
+			and if(t.status="60",0,t.weight) &lt;= round(#{getAmountE},2)
+		</if>
+		<if test="billSender !='' and billSender != null">
+			and (SELECT t1.company_name FROM Company t1 where t1.seq_id = t.company_id and t1.platform_id = t.platform_id) like CONCAT('%',#{billSender},'%')
+		</if>
+		<if test="orderId !='' and orderId != null">
+			and t.publish_id like CONCAT('%',#{orderId},'%')
+		</if>
+		<if test="getOrderPlate !='' and getOrderPlate != null">
+			and t.get_order_plate like CONCAT('%',#{getOrderPlate},'%')
+		</if>
+		<if test="startPlate !='' and startPlate != null">
+			and t.start_plate like CONCAT('%',#{startPlate},'%')
+		</if>
+		<if test="endPlate !='' and endPlate != null">
+			and t.end_plate like CONCAT('%',#{endPlate},'%')
+		</if>
+		<if test="rqStart != null">
+			and t.create_date &gt;= #{rqStart,jdbcType=TIMESTAMP}
+		</if>
+		<if test="rqEnd != null">
+			and t.create_date &lt;= #{rqEnd,jdbcType=TIMESTAMP}
+		</if>
+		<if test="status !='' and status != null">
+			<if test="status == '00'"  >
+				and t.status = #{status}
+			</if>
+
+			<if test="status == '20'">
+				and (t.sale_weight &gt;0 and t.status !='00')
+			</if>
+
+			<if  test="status == '30'">
+				and (t.sale_weight=0 and t.status !='00')
+			</if>
+
+			<if  test="status == '60'">
+				and t.status = #{status}
+			</if>
+		</if>
+
+		<if  test="publishIdD !='' and publishIdD != null" >
+			and t.publish_id = #{publishIdD}
+		</if>
+
+		<if test="dependNum !='' and dependNum != null">
+			and (t.depend_num like CONCAT('%',#{dependNum},'%')
+			or
+			t.depend_num2 like CONCAT('%',#{dependNum},'%'))
+		</if>
+		<if test="goodType !='' and goodType != null">
+			and t.good_type = #{goodType}
+		</if>
+		<if test="fromType !='' and fromType != null">
+			<if test='fromType=="JK_U8"'>
+				and t.from_type in ("JK_U8","JK_U9","JK_U10")
+			</if>
+			<if test='fromType !="JK_U8"'>
+				and t.from_type = #{fromType}
+			</if>
+		</if>
+		<if test="pinDanNum !='' and pinDanNum != null">
+			and t.pin_dan_num = #{pinDanNum}
+		</if>
+		<if test="pinDan !='' and pinDan != null">
+			<if test='pinDan == "1"'>
+				and t.pin_dan_num is not null
+			</if>
+			<if test='pinDan == "2"'>
+				and t.pin_dan_num is null
+			</if>
+		</if>
+		<if test="prodDesc !='' and prodDesc != null">
+			and t.prod_desc like CONCAT('%',#{prodDesc},'%')
+		</if>
+
+		<if test='docuType == "1"'>
+			and t.docu_type = '1'
+		</if>
+		<if test='docuType == "0"'>
+			and t.docu_type != '1'
+		</if>
+
+		<!-- 报价单筛选 -->
+		<if test="talkPrice !='' and talkPrice != null">
+			and ifnull((select count(1) from goodsorderquotation s where s.publish_id=t.publish_id and s.plat_form_id = t.platform_id and s.status='10'),0) > 0
+			and
+			ifnull((select count(1) from goodsorderquotation s where s.publish_id=t.publish_id and s.plat_form_id = t.platform_id and s.status='20'),0) = 0
+			and
+			t.qb_type =1
+		</if>
+		<if test="dsIfSettle !='' and dsIfSettle != null">
+			and t.ds_if_settle=#{dsIfSettle}
+		</if>
+	</select>
+       <!-- 含税委托方查看 -->
+       <select id="listTaxGoodBill" parameterType="com.brcc.business.goodsorderm.vo.GoodsordermQueryVo" resultType="com.brcc.business.goodsorderm.vo.GoodsordermVo">
+		SELECT
+		        t.appoint_person_info as appointPersonInfo,
+		        t.web_can_grab as webCanGrab,
+				t.publish_id as publishId,
+				round(t.weight,4) as weight,
+				round(t.qty,1) as qty,
+				round(t.amount,2) as amount,
+				t.`status`,
+				t.platform_id as platformId,
+				date_format(t.create_date,'%Y-%m-%d %H:%i:%s') as createDate ,
+				date_format(t.pickup_date,'%Y-%m-%d %H:%i:%s') as pickupDate ,	
+				if(t.pickup_date &lt; now(),'Y','N') as isTimeOut,   
+				t.limit_time as limitTime,
+				t.ps as remark,
+				t.depend_num as dependNum,
+				round(t.price, 2) as price,
+				<!-- if(t.if_audit='0',t.price,
+					if((t.owner_adjust_flag='Y' AND T.owner_adjust_type='01'),
+					(t.price + IFNULL(t.owner_adjust_amt,0.00)),0.00)) as price, -->
+				t.start_plate as startPlate,
+				t.end_plate as endPlate,
+				t.from_type as fromType,
+				t.prod_desc as prodDesc,
+				round(t.init_qty,1) as initQty,
+				round(t.init_amount,2) as initAmount,
+				t.get_order_plate as getOrderPlate,
+				t.good_type_desc as goodTypeDesc,
+				round(t.init_weight,4) as initWeight,
+				t.sendKM,
+				t.`sender`, 
+				t.`sender_mobile` as senderMobile, 
+				t.`receiver_mobile` as receiverMobile, 
+				t.`receiver`,
+				t.`bill_sender` as billSender,
+				t.`bill_sender_mobile` as billSenderMobile, 
+				t.`bill_taker` as billTaker, 
+				t.`bill_taker_mobile` as billTakerMobile,
+				t.vehicle_style_var as vehicleStyleVar,
+				t.`heavy_piece` heavyPiece,
+				t.good_price goodPrice,
+				t.`loss_type` as lossType ,
+				t.loss_ratio as lossRatio,
+				t.loss_weight as lossWeight,
+				t.`single_car_weight` as singleCarWeight,
+				t.`detachable`,
+				t.owner_adjust_amt as ownerAdjustAmt,
+				t.if_audit as ifAudit,
+				if(t.detachable = 0,'不可拆',if(t.detachable = 1,'可拆','不可拆')) as detachableDesc,
+				t.depend_num2 as `dependNum2`,
+				'' as publishNum,
+				round(t.sale_weight,4) as saleWeight,
+				round(t.sale_weight,4) as billWeight, 
+				if(t.status = '00','已作废',if(t.status = '20',if(t.sale_weight &gt;0,'已抢单','未抢单'),if(t.`status`='30','已完成','终止'))) as statusDesc,
+				(select sum(t1.weight) from TransportationDelivery t1 
+				where t1.publish_id = t.publish_id 
+				and t.status!='00'
+				and t1.status!='00'
+				and t1.platform_id = t.platform_id) as transWeight,  <!-- 已调度单量 -->
+				if(t.appoint_company_id='','N','Y')  "appointFlag",
+				t.qb_type as qbType,
+				round(t.max_price, 2) as maxPrice,
+				<!-- 发单人 -->
+				v.vat_client_name as consignorName,
+				c.contact_mobile  as "consignorNameMobile",
+				t.appoint_team_type as appointTeamType,
+				t.estimateKM,
+				t.appoint_team_id as appointTeamId,
+				t.send_group as sendGroupType,
+				(SELECT t1.team_name FROM TeamCompany t1 where t1.team_id = t.appoint_team_id limit 0,1) as appointTeamName,
+				if(ifnull(t.send_group,'') = 'ALL','全部', if(ifnull(t.send_group,'') = 'WEB','物流公司',if(ifnull(t.send_group,'') = 'APP','司机',''))) as sendGroup,
+				t.ps2,
+				t.ps3,
+				t.ps4,
+				t.ps5,
+				t.ps1,
+				t.company_id as fdCompanyId,
+				t.docu_pri_sec as docuPriSec,
+				t.docu_type as docuType,
+				t.pin_dan_num as pinDanNum,
+				t.ds_if_settle as "dsIfSettle",
+				if(t.ds_if_settle=0,'否','是') as "dsIfSettleDesc",
+				v.vat_acc_type as vatAccType,
+				v.vat_client_id as vatClientId,
+				v.vat_client_name as vatClientName,
+ 				v.vat_rate_chose as vatRateChose,
+				v.vat_standard_rate as "standardRate",
+				v.vat_policy_rate as vatPolicyRate,
+				if(v.vat_acc_type='1',
+					if(v.vat_rate_chose='1',
+						round(if(t.if_audit='0',t.price,
+					if((t.owner_adjust_flag='Y' AND t.owner_adjust_type='01'),
+					(t.price + IFNULL(t.owner_adjust_amt,0.00)),0.00)) * (1 + v.vat_standard_rate),2),
+						round(if(t.if_audit='0',t.price,
+					if((t.owner_adjust_flag='Y' AND T.owner_adjust_type='01'),
+					(t.price + IFNULL(t.owner_adjust_amt,0.00)),0.00)) * (1 + v.vat_policy_rate),2)
+					),
+					if(v.vat_rate_chose='1',
+						round(if(t.if_audit='0',t.price,
+					if((t.owner_adjust_flag='Y' AND T.owner_adjust_type='01'),
+					(t.price + IFNULL(t.owner_adjust_amt,0.00)),0.00)) / (1 - v.vat_standard_rate),2),
+						round(if(t.if_audit='0',t.price,
+					if((t.owner_adjust_flag='Y' AND T.owner_adjust_type='01'),
+					(t.price + IFNULL(t.owner_adjust_amt,0.00)),0.00)) / (1 - v.vat_policy_rate),2)
+					)
+				)as "priceTax",
+				if(v.vat_acc_type='1',
+					if(v.vat_rate_chose='1',
+						round(t.init_weight * round(if(t.if_audit='0',t.price,
+					if((t.owner_adjust_flag='Y' AND T.owner_adjust_type='01'),
+					(t.price + IFNULL(t.owner_adjust_amt,0.00)),0.00)) * (1 + v.vat_standard_rate),2),2),
+						round(t.init_weight * round(if(t.if_audit='0',t.price,
+					if((t.owner_adjust_flag='Y' AND T.owner_adjust_type='01'),
+					(t.price + IFNULL(t.owner_adjust_amt,0.00)),0.00)) * (1 + v.vat_policy_rate),2),2)
+					),
+					if(v.vat_rate_chose='1',
+						round(t.init_weight * round(if(t.if_audit='0',t.price,
+					if((t.owner_adjust_flag='Y' AND T.owner_adjust_type='01'),
+					(t.price + IFNULL(t.owner_adjust_amt,0.00)),0.00)) / (1 - v.vat_standard_rate),2),2),
+						round(t.init_weight * round(if(t.if_audit='0',t.price,
+					if((t.owner_adjust_flag='Y' AND T.owner_adjust_type='01'),
+					(t.price + IFNULL(t.owner_adjust_amt,0.00)),0.00)) / (1 - v.vat_policy_rate),2),2)
+					)
+				)as "taxAmount",
+				t.if_tax_transport as ifTaxTransport,
+				if(t.if_tax_transport='Y','是','否') as "ifTaxTransportDesc",
+				t.vat_flow_master_id as vatFlowMasterId,
+				t.listing_price as "listingPrice",
+			    t.dq_flag as dqFlag,
+			    if(t.`loss_type`='1','定额','定率') as "lossTypeDesc",
+				if(t.`loss_type`='1',CONCAT(t.loss_weight*1000,'（kg/车）'),CONCAT(t.loss_ratio*1000,'（‰/车）')) as "lossWeightDesc",
+			    date_format(t.dq_stt_date,'%Y-%m-%d %H:%i:%s') as "dqSttDate",
+			    date_format(t.dq_end_date,'%Y-%m-%d %H:%i:%s') as "dqEndDate",
+		   t.appoint_team_type  as appointTeamType
+		   FROM  (vatflowdetail v,goodsorderm t)
+            left JOIN company c on(c.seq_id=v.vat_client_id)
+		WHERE 1=1
+		AND t.platform_id = #{platformId}
+		and t.if_tax_transport='Y'
+		and t.status !='10'
+		<if test="companyId != null and companyId!=''">
+		  and v.vat_carry_id=#{companyId}
+		  and t.vat_flow_master_id = v.vat_flow_master_id 
+		</if>
+		<!-- 引用公用查询 -->
+		<include refid="common.filterQuery" />
+		<if test="companyId != null and companyId != ''">
+			<if test="isAutoDisplay != null and isAutoDisplay != ''">
+				and t.is_auto_display = #{isAutoDisplay}
+			</if>
+		</if>
+		<if test="carNum !='' and carNum != null">
+		and EXISTS( SELECT 
+            1
+        FROM
+            transportationdelivery t1,
+            vehicle t2
+        WHERE
+            t1.vehicle_id = t2.vehicle_id
+                AND t1.platform_id = t2.platform_id
+                and t1.publish_id = t.publish_id
+                and t2.vehicle_num like concat('%',#{carNum},'%')
+		)
+		</if>
+		<if test="appointTeam !='' and appointTeam != null">
+		    <if test="appointTeam == '01'">
+		       and (t.appoint_team_type is not null and t.appoint_team_type !='1' )
+		    </if>
+		    <if test="appointTeam == '02'">
+		        and (t.appoint_team_type is  null or t.appoint_team_type ='1') 
+		    </if>
+		</if>
+		<if test="getAmountS !='' and getAmountS != null">
+			and if(t.status="60",0,t.weight) &gt;= round(#{getAmountS},2)
+		</if>
+		<!-- 含税 -->
+		<if test="taxTransport !='' and taxTransport != null">
+			and t.if_tax_transport = #{taxTransport}
+		</if>
+		<if test="getAmountE !='' and getAmountE != null">
+			and if(t.status="60",0,t.weight) &lt;= round(#{getAmountE},2)
+		</if>		
+		<if test="billSender !='' and billSender != null">
+			and (SELECT t1.company_name FROM Company t1 where t1.seq_id = t.company_id and t1.platform_id = t.platform_id) like CONCAT('%',#{billSender},'%')
+		</if>
+		<if test="orderId !='' and orderId != null">
+			and t.publish_id like CONCAT('%',#{orderId},'%')
+		</if>		
+		<if test="getOrderPlate !='' and getOrderPlate != null">
+			and t.get_order_plate like CONCAT('%',#{getOrderPlate},'%')
+		</if>
+		<if test="startPlate !='' and startPlate != null">
+			and t.start_plate like CONCAT('%',#{startPlate},'%')
+		</if>
+		<if test="endPlate !='' and endPlate != null">
+			and t.end_plate like CONCAT('%',#{endPlate},'%')
+		</if>
+		<if test="rqStart != null">
+			and t.create_date &gt;= #{rqStart,jdbcType=TIMESTAMP}
+		</if>
+		<if test="rqEnd != null">
+			and t.create_date &lt;= #{rqEnd,jdbcType=TIMESTAMP}		
+		</if>
+		<if test="status !='' and status != null">
+			<if test="status == '00'"  >
+			   and t.status = #{status}			    
+			</if>
+
+			<if test="status == '20'">
+			   and (t.sale_weight &gt;0 and t.status !='00')
+			</if>
+			
+			<if  test="status == '30'">
+			   and (t.sale_weight=0 and t.status !='00')
+			</if>
+			
+			<if  test="status == '60'">
+			   and t.status = #{status}	
+			</if>			
+		</if>
+		
+       <if  test="publishIdD !='' and publishIdD != null" >
+           and t.publish_id = #{publishIdD}	
+       </if>		
+		
+		<if test="dependNum !='' and dependNum != null">
+			and (t.depend_num like CONCAT('%',#{dependNum},'%')
+			or
+			t.depend_num2 like CONCAT('%',#{dependNum},'%'))
+		</if>
+		<if test="goodType !='' and goodType != null">
+			and t.good_type = #{goodType}
+		</if>
+		<if test="fromType !='' and fromType != null">
+			<if test='fromType=="JK_U8"'>
+				and t.from_type in ("JK_U8","JK_U9","JK_U10")
+			</if>
+			<if test='fromType !="JK_U8"'>
+				and t.from_type = #{fromType}
+			</if>
+		</if>
+		<if test="pinDanNum !='' and pinDanNum != null">
+			and t.pin_dan_num = #{pinDanNum}
+		</if>
+		<if test="pinDan !='' and pinDan != null">
+			<if test='pinDan == "1"'>
+		    	and t.pin_dan_num is not null
+		   	</if>
+		   	<if test='pinDan == "2"'>
+		    	and t.pin_dan_num is null
+		   	</if>
+		</if>
+		<if test="prodDesc !='' and prodDesc != null">
+			and t.prod_desc like CONCAT('%',#{prodDesc},'%')
+		</if>
+
+		<if test='docuType == "1"'>
+			and t.docu_type = '1'
+		</if>
+	    <if test='docuType == "0"'>
+	    	and t.docu_type != '1' 
+	    </if>
+
+    	<!-- 报价单筛选 -->		
+		<if test="talkPrice !='' and talkPrice != null">
+		   and ifnull((select count(1) from goodsorderquotation s where s.publish_id=t.publish_id and s.plat_form_id = t.platform_id and s.status='10'),0) > 0
+            and
+          ifnull((select count(1) from goodsorderquotation s where s.publish_id=t.publish_id and s.plat_form_id = t.platform_id and s.status='20'),0) = 0
+            and 
+          t.qb_type =1
+		</if>	
+		<if test="dsIfSettle !='' and dsIfSettle != null">
+			and t.ds_if_settle=#{dsIfSettle}
+		</if>
+		order by 
+		if(t.appoint_company_id=0,0,1) desc , 
+		if(t.docu_type='1' || t.docu_type='2',
+		if(t.docu_pri_sec='1',t.publish_id ,t.pri_publish_id) , t.publish_id ) desc,
+		if(t.docu_type='1' || t.docu_type='2',t.docu_pri_sec*-1,t.publish_id) desc,
+		if(weight - transWeight > 0 , 1 , 0) desc 	
+		<!-- 明细查看 -->
+       <if test="publishIdD !='' and publishIdD != null" >
+           limit 0,1
+       </if>
+	  <if test ="fromRow !=null">
+			   limit #{fromRow},#{toRow}
+	  </if>
+	</select>
+    
+    <select id="queryEffectFlow" resultType="com.brcc.business.flow.vo.VatflowdetailVo" parameterType="com.brcc.business.flow.vo.VatflowmasterQueryVo">
+    	  SELECT 
+			   t.vat_standard_rate as "vatStandardRate",
+			   t.vat_flow_master_id as "vatFlowMasterId",
+			   t.vat_flow_master_name as "vatFlowMasterName",
+			   t.vat_acc_type as "vatAccType",
+			   t.vat_rate_chose as "vatRateChose",
+			   v.vat_standard_rate as "vatStandardRate",
+			   v.vat_policy_rate as "vatPolicyRate",
+			   v.vat_flow_detail_id as "vatFlowDetailId"
+		  FROM
+			  vatflowmaster t,vatflowdetail v
+			WHERE
+			   	t.platform_id = #{platformId}
+				AND t.vat_company_id = #{vatCompanyId}
+				and ifnull(v.if_begin,'N') ='Y'
+				and v.vat_client_id = #{vatCompanyId}
+				and  v.vat_flow_master_id = t.vat_flow_master_id
+				AND t.vat_status = '20'
+				<if test="vatFlowMasterId !='' and vatFlowMasterId != null">
+				and t.vat_flow_master_id = #{vatFlowMasterId}
+				</if>
+    </select>
+    
+     <select id="queryGoodsownerfdconfigVo" resultType="com.brcc.business.goodsorderm.vo.GoodsownerfdconfigVo" parameterType="com.brcc.business.goodsorderm.vo.GoodsordermQueryVo">
+    	  SELECT
+				t.after_days as "afterDays",
+				t.after_date as "afterDate",
+				t.loss_type as lossType,
+				t.loss_ratio*1000 as lossRatio,
+				t.loss_weight*1000 as lossWeight,
+				t.if_default_team as ifDefaultTeam,
+				t.if_tax_transport as ifTaxTransport,
+				t.send_group as sendGroup,
+				t.good_price as goodPrice,
+				t.if_recommend_car_style as ifRecommendCarStyle,
+				t.if_max_trans_days as ifMaxTransDays
+			FROM
+				goodsownerfdconfig t
+			WHERE t.publish_company_id = #{companyId}
+			AND t.platform_id = #{platformId}
+			AND t.conf_status = '20'
+    </select>
+
+	<select id="checkGrab" resultType="java.lang.Long" parameterType="com.brcc.business.transportbill.vo.TransportBillQueryVo">
+			select count(*)
+					from (select count(*)
+						from TransportationM t
+							where 	t.weight &gt; 0
+								AND t.platform_id = #{platformId}
+								and t.status = '20'
+								and t.company_id = #{companyId}
+						GROUP BY if(t.pri_publish_id = -1, (select g.pri_publish_id from goodsorderm g where g.publish_id = t.publish_id ), t.pri_publish_id) ) aa
+	</select>
+</mapper>

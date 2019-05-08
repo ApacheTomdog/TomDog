@@ -1,0 +1,2457 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="transportSettle">
+	<select id="list" resultType="com.brcc.business.transportbill.vo.TransportationDeliveryVo" parameterType="java.util.Map">
+		SELECT 
+		    t.bill_sender as 'billSender',
+		    t.bill_sender_mobile as 'billSenderMobile',
+		    t.receiver,
+		    t.get_order_plate as getOrderPlate,<!--取单地  -->
+		    t.receiver_mobile as 'receiverMobile',
+		    t.zcSure_date AS 'zcSureDate',
+		    t.js_remark AS 'jsRemark',
+		    t.delivery_id 'deliveryId',
+		    t.delivery_num as 'deliveryNum',
+		    t.publish_id 'publishId',
+		    t.publish_num AS publishNum,
+		    t.trans_id as transId,
+		    t.trans_num as transNum,
+		    d.id_num AS idNum,
+		    t.weight,
+		    t.price,
+		    t.amount,
+		    p.pay_amount AS payAmount,
+		    t.create_date AS createDate,
+		    t.company_id as companyId,
+		    c.company_name AS companyName, 
+		    c.bank_name as carrierBankName,
+		    c.bank_num as carrierBankNum,
+		    c.bank_owner as carrierBankOwner,
+		    t.start_plate startPlate,
+		    t.end_plate endPlate,
+		    t.driver_id driverId,
+		    t.comfirm_pic_local comfirmPicLocal,
+		    d.`name` AS name,
+		    t2.company_id AS driverCompanyId,
+		    c2.bank_name as driverBankName,
+		    c2.bank_num as driverBankNum,
+		    c2.bank_owner as driverBankOwner,
+		    t.vehicle_id vehicleId,
+		    v.vehicle_num AS vehicleNum,
+		    t.status,
+		    d.phone AS phone,
+		    IF(t.status = '10',
+		        '待取单',
+		        IF(t.status = '20',
+		            '待装货',
+		            IF(t.status = '30',
+		                '待收货',
+		                IF(t.status = '90',
+		                    '已完成',
+		                    IF(t.status = '00',
+		                        '已作废',
+		                        '待取单'))))) AS statusDesc,
+		    IFNULL(t.settle_weight, 0) settleWeight,
+		    IFNULL(t.settle_amount, 0) settleAmount,
+		    IFNULL(t.truck_loading_weight, 0) AS truckLoadingWeight,
+		    IFNULL(t.take_delivery_weight, 0) AS takeDeliveryWeight,
+		    t.operate_type operateType,
+		    IFNULL(round((t.truck_loading_weight-t.take_delivery_weight),2), 0) as "deductLossWeight",
+		    IFNULL(round(format((t.truck_loading_weight-t.take_delivery_weight),4)/t.truck_loading_weight,4), 0) as "deductLossRatio",
+		    IFNULL(t.settle_price, 0) settlePrice,
+		    t.price,
+		    t.orther_flag as ortherFlag,
+            t.bill_sender as billSender,
+            t.bill_sender_mobile as billSenderMobile,
+            t.good_type as goodType,
+            t.good_type_desc as goodTypeDesc,
+            t.if_fd_judge as ifFdJudge,
+            IF(t.if_fd_judge = 'Y',
+                '已评价',
+                '未评价') AS accFlag,
+            IF(t.orther_flag = '1',
+                '已处理',
+                '未处理') AS ortherFlagName,
+            IF(t.if_feidan = 'Y', '是', '不是') AS iffly,
+            g.prod_desc AS prodDesc,
+            g.from_type AS fromType,
+		    if(g.from_type = 'JK_U9', '新大宗采购',IF(g.from_type = 'JK_U11', IF( g.logistics_mark = 'X', '销售物流', '采购物流' ),  if(g.from_type = 'DS', '销售电商', if(g.from_type = 'PT', '平台货源',
+		    if(g.from_type = 'JK_U8', if(g.logistics_mark='X', '大宗销售', '大宗采购'), '平台货源'))))) as docOrigin,
+		    g.ps AS ps,
+            g.depend_num AS dependNum,
+            t.publish_company_id as publishCompanyId,
+            (SELECT 
+                    t1.company_name
+                FROM
+                    Company t1
+                WHERE
+                    t1.seq_id = t.publish_company_id) AS consignorName,
+            (SELECT 
+                    t1.user_name
+                FROM
+                    loginverify t1
+                WHERE
+                    t1.user_id = t.update_person) AS updatePersonName,
+            g.pin_dan_num AS pinDanNum,
+            t.update_date AS updateDate,
+            IF(t.settle_status = '10',
+                '未计算',
+                IF(t.settle_status = '20',
+                    '已计算',
+                    '未计算')) AS settleStatusDesc,
+            t.settle_status as settleStatus,
+            t.zf_id as zfId,
+            t.zf_num as zfNum,
+            t.loss_type AS lossType,
+            t.loss_ratio AS lossRatio,
+            IFNULL(t.loss_weight, 0) AS lossWeight,
+            IFNULL(t.good_price, 0) AS goodPrice,
+            g.sender AS sender,
+            g.js_type AS jsType,
+            (SELECT 
+                    c.early_warning_days
+                FROM
+                    company c
+                WHERE
+                    t.publish_company_id = c.seq_id) AS earlyWarningDays,
+            IF(t.finish_time IS NULL
+                    OR t.finish_time = '',
+                DATE_FORMAT(t.shSure_date, '%Y-%m-%d %H:%i:%s'),
+                DATE_FORMAT(t.finish_time, '%Y-%m-%d %H:%i:%s')) AS finishTime,
+            t.remark,
+            p.status AS payStatus,
+            IF((p.`status` = '10'),
+                '待支付',
+                IF((p.`status` = '20'),
+                    '已支付',
+                    IF((p.`status` = '00'),
+                        '已撤销',
+                        IF((p.`status` = '30'),
+                            '处理中',
+                            '待支付')))) AS payStatusDesc,
+            p.pay_date AS payDate,
+            IF(p.rece_bank_type = '1',
+                '发单人账号',
+                IF(p.rece_bank_type = '0',
+                    '承运人账号',
+                    if((SELECT count(1)
+                    FROM
+                        goodsorder_to_pay_info gp
+                    WHERE gp.publish_id = t.publish_id
+                    and gp.platform_id = t.platform_id) = 1, '发单人账号', '承运人账号')
+                    )) AS receBankTypeDesc,
+             IF(p.rece_bank_type = '1',
+                '1',
+                IF(p.rece_bank_type = '0',
+                    '0',
+                    if((SELECT count(1)
+                    FROM
+                        goodsorder_to_pay_info gp
+                    WHERE gp.publish_id = t.publish_id
+                    and gp.platform_id = t.platform_id) = 1, '1', '0')
+                    )) AS receBankType,
+             g.ds_if_settle as "dsIfSettle",
+             if(g.ds_if_settle=0,'否','是') as "dsIfSettleDesc",
+             <!-- c.bank_num, --><!-- 承运人银行账号 -->
+             ifnull(gp2.bank_num,'N') as "fdBankNum",<!-- 发单人维护账号 -->
+             gp2.bank_name as "fdBankName",
+             gp2.bank_card_owner as "fdBankCardOwner",
+             <!-- c.bank_name,
+             c.bank_owner, -->
+             (select ifnull(l.user_type, 'GS') from loginverify l  where l.company_id = t.company_id and l.driver_id = t.driver_id and l.platform_id = t.platform_id) as "userType",
+             t.if_tax_transport as ifTaxTransport,
+             if(t.if_tax_transport ='Y',round(t.price_tax,2),'') as "priceTax" ,
+             if(t.if_tax_transport ='Y' ,round(round(t.price_tax,2) * t.weight,2) ,'' ) as "taxAmount",
+             if(t.if_tax_transport ='Y' ,round(round(t.price_tax,2) * t.weight,2) ,'' ) as "amountTax",
+             if(t.if_tax_transport='Y', t.standard_tax,'') as "standardTax",                       
+             if(t.if_tax_transport='Y','是','否') as "ifTaxTransportDesc",
+             if(t.if_tax_transport='Y',(SELECT  t1.company_name FROM company t1 WHERE  t1.seq_id = t.carry_company_id),'') AS carryCompanyName,
+             if(t.if_tax_transport='Y',(SELECT  t1.contact_mobile FROM company t1 WHERE  t1.seq_id = t.carry_company_id),'') AS carryContactMobile,
+             t.if_upload_receipt_flag as ifUploadReceiptFlag,
+             t.comfirm_pic1_local as comfirmPic1Local,
+             g.if_payment as ifPayment, 
+             IF(g.if_payment = 'Y',
+                '是',
+                IF(g.if_payment = 'N',
+                    '否',
+                    '未知'))AS "ifPaymentDesc",
+             g.charge_price as chargePrice,
+             g.charge_price_type as chargePriceType,
+             t.owner_adjust_flag as ownerAdjustFlag,
+             t.owner_adjust_type as ownerAdjustType,
+             t.owner_adjust_amt as ownerAdjustAmt,
+             p.owner_adjust_tot_amt as ownerAdjustTotAmt,
+             t.broker_people_toll_type as brokerPeopleTollType,
+             t.broker_people_toll_amount as brokerPeopleTollAmount,
+             t.broker_people_toll_ratio as brokerPeopleTollRatio,
+             t.if_broker_people_toll_flag as ifBrokerPeopleTollFlag,
+             p.dump_truck_charge as dumpTruckCharge,
+             t.pound_location as poundLocation,
+             t.pound_num as poundNum,
+             IFNULL(p.transportation_amount, 0) as transportationAmount,
+             p.owner_payapply_flag as ownerPayapplyFlag,
+             t.shipping_time as shippingTime,
+             t.m_weight_flag as mWeightFlag,
+			 t.m_weight as mWeight,
+			 t.sign_status as signStatus,
+			 g.contract_number as contractNumber,
+			 g.contract_type as contractType,
+			 (select if(count(1)=0,'N','Y')
+				from apptms.pay_bill_cal_config pbc where pbc.company_id = t.publish_company_id
+				and pbc.if_unloading_weight_cal=1) as ifUnloadingWeightCal,
+		     m.create_date as grabDate
+			 <!-- ifnull(j.dz_jk_cancel, 0) AS "dz_jk_cancel", -->
+			 <!-- if(i.if_invoice='2','已开票',if(i.if_invoice='1','开票中','未开票')) as "ifInvoice",
+             i.invoice_no -->
+		     <!--  CONCAT(if(ifnull(gp.bank_num,'N')='N',c.bank_num,gp.bank_num)) as "bankNum" -->
+		FROM
+		    (TransportationDelivery AS t
+		    LEFT JOIN pay_bill p ON t.zf_id = p.zf_id
+		        AND t.platform_id = p.platform_id)
+		        LEFT JOIN
+		    driver d ON t.driver_id = d.id
+		        LEFT JOIN
+		    vehicle v ON t.vehicle_id = v.vehicle_id
+		    	JOIN 
+		    loginverify t2 on t2.platform_id = t.platform_id
+		    AND t2.driver_id = t.driver_id
+		    	JOIN
+		    COMPANY c ON t.company_id=c.seq_id
+		    	JOIN
+		    COMPANY c2 ON t2.company_id=c2.seq_id              
+		         <!-- LEFT JOIN
+		    COMPANY c ON t.company_id=c.seq_id -->
+		       LEFT JOIN
+		    goodsorder_to_pay_info gp2 on t.publish_id=gp2.publish_id
+		        JOIN
+		    goodsorderm g ON g.publish_id = t.publish_id
+		        JOIN
+		    transportationm m on m.trans_id = t.trans_id
+		WHERE t.platform_id = #{platformId}
+		and t.sign_status = '20'
+		<!-- 在“已计算”列表显示出所有的已计算单据，即除了显示未做付款指令的运费计算单外，还要显示出已做付款指令及付款完成的单子。 -->
+		<!-- and ifnull(p.owner_payapply_flag, '0') = "0" -->
+		<include refid="common.filterQuery" />
+		<include refid="common.commonQuery2" />
+		<if test="ifPayment!=null and !ifPayment">
+			and IFNULL(g.if_payment, 'N') = 'N'
+		</if>
+		<if test="ifPayment!=null and ifPayment">
+			and IFNULL(g.if_payment, 'N') = 'Y'
+		</if>
+		<!-- 增加回单上传的图片 -->
+		<if test='comfirmPic1Local =="1"'>
+			and t.comfirm_pic1_local != '' 
+		</if>
+		<if test='comfirmPic1Local =="0"'>
+			and t.comfirm_pic1_local = ''
+		</if>
+		<!-- 增加取单地 -->
+		<if test="getOrderPlate!=null and getOrderPlate!=''">
+			and t.get_order_plate like CONCAT('%',#{getOrderPlate},'%')
+		</if>
+		<if test="ifCan!=null and ifCan">
+			and IFNULL(t.truck_loading_weight,0) &gt;0 and IFNULL(t.take_delivery_weight,0) &gt;0
+		</if>
+		<if test="ifCan!=null and !ifCan">
+			and (IFNULL(t.truck_loading_weight,0) &lt;=0 or IFNULL(t.take_delivery_weight,0) &lt;=0)
+		</if>
+		<if test='isAutoDisplay=="0"'>
+			and g.is_auto_display = '0'
+		</if>
+		<if test='isAutoDisplay=="1"'>
+			and g.is_auto_display = '1'
+		</if>
+		<if test="ifBrokerPeopleTollFlag!=null and ifBrokerPeopleTollFlag!=''">
+			and t.if_broker_people_toll_flag = #{ifBrokerPeopleTollFlag}
+		</if>
+		<if test="billSender!=null and billSender!=''">
+			and g.bill_sender like CONCAT('%',#{billSender},'%')
+		</if>
+		<if test="deliveryId!=null">
+			and t.delivery_id like CONCAT('%',#{deliveryId},'%')
+		</if>
+		<if test="transportationdeliveryId!=null">
+			and t.delivery_id = #{transportationdeliveryId}
+		</if>
+		<if test="payPublishId!=null">
+			and t.publish_id like CONCAT('%',#{payPublishId},'%')
+		</if>
+		<if test="accessFlag=='N'">
+			and (t.if_fd_judge is null or t.if_fd_judge='N') and (t.status='00' || t.status='90')
+		</if>
+		<if test="accessFlag=='Y'">
+			and t.if_fd_judge='Y' and (t.status='00' || t.status='90')
+		</if>
+		<if test="dependNum!=null and dependNum!=''">
+			and g.depend_num = #{dependNum}
+		</if>
+		<if test="settleflag=='10'">
+			and t.settle_amount = 0
+		</if>
+		<if test="settleflag=='20'">
+			and t.settle_amount &gt; 0
+		</if>
+		<if test="settleStatus=='10'">
+			and (t.settle_status = "10" or t.settle_status is null)
+		</if>
+		<if test="settleStatus=='20'">
+			and t.settle_status = "20" <!-- and p.owner_payapply_flag = "0" -->
+		</if>
+		<if test="name!=null and name!=''">
+			and d.name like CONCAT('%',#{name},'%')
+		</if>
+		<if test="vehicleNum!=null and vehicleNum!=''">
+			and v.vehicle_num like CONCAT('%',#{vehicleNum},'%')
+		</if>
+		<if test="ps!=null and ps!=''">
+			and g.ps like CONCAT('%',#{ps},'%')
+		</if>
+		<if test="transId!=null">
+			and t.trans_id = #{transId}
+		</if>
+		<if test="companyName!=null and companyName!=''">
+			and (select  company_name from Company a where a.platform_id = t.platform_id and a.seq_id = t.company_id)  like concat('%',#{companyName} ,'%')
+		</if>
+		<if test="invoiceNo!=null and invoiceNo!=''">
+			and i.invoice_no like CONCAT('%',#{invoiceNo},'%')
+		</if>
+		<if test="ifInvoice!=null and ifInvoice!=''">
+			and IFNULL(i.if_invoice,0)=#{ifInvoice}
+		</if>
+		<if test="publishId!=null">
+			and t.publish_id = #{publishId}
+		</if>	
+		<if test="pinDan=='1'">
+			and g.pin_dan_num is not null
+		</if>
+		<if test="pinDan=='2'">
+			and g.pin_dan_num is null
+		</if>	
+		<if test="ifPaid!=null and ifPaid!=''">
+			and IFNULL(p.status,'10') = #{ifPaid}
+		</if>
+		<if test="carriCompany!=null and carriCompany!=''">
+			and t.company_id IN (select t3.seq_id from Company t3 where t3.company_name like CONCAT('%', #{carriCompany},'%'))
+		</if>
+		<if test="earlyWarning=='Y'">
+			and t.create_date &lt;=DATE_SUB(now(),INTERVAL (select c.early_warning_days FROM company c where t.publish_company_id=c.seq_id) day)
+			AND t.status&gt;00 AND t.status&lt;90
+		</if>
+		<if test="earlyWarning=='N'">
+			and t.create_date &gt;=DATE_SUB(now(),INTERVAL (select c.early_warning_days FROM company c where t.publish_company_id=c.seq_id) day)
+			AND t.status&gt;00 AND t.status&lt;90
+		</if>
+		<if test="rqStart!=null">
+			and t.create_date &gt;= #{rqStart,jdbcType=TIMESTAMP}
+			<!-- and t.create_date &gt;= STR_TO_DATE(CONCAT(#{rqStart},':00'),'%Y-%m-%d %H:%i:%s') -->
+		</if>
+		<if test="rqEnd!=null">
+			and t.create_date &lt;= #{rqEnd,jdbcType=TIMESTAMP}
+			<!-- and t.create_date &lt;= STR_TO_DATE(CONCAT(#{rqEnd},':59'),'%Y-%m-%d %H:%i:%s') -->
+		</if>
+		<if test="receRqStart!=null">
+			and t.finish_time &gt;= #{receRqStart,jdbcType=TIMESTAMP}
+			<!-- and t.finish_time &gt;= STR_TO_DATE(CONCAT(#{receRqStart},':00'),'%Y-%m-%d %H:%i:%s') -->
+		</if>
+		<if test="receRqEnd!=null">
+			and t.finish_time &lt;= #{receRqEnd,jdbcType=TIMESTAMP}
+			<!-- and t.finish_time &lt;= STR_TO_DATE(CONCAT(#{receRqEnd},':59'),'%Y-%m-%d %H:%i:%s') -->
+		</if>
+		<if test="startPlate!=null and startPlate!=''">
+			and t.start_plate like CONCAT('%',#{startPlate},'%')
+		</if>
+		<if test="endPlate!=null and endPlate!=''">
+			and t.end_plate like CONCAT('%',#{endPlate},'%')
+		</if>
+		<if test="status!=null and status!=''">
+			and t.status = #{status}
+		</if>
+		<if test="fromType!=null and fromType!=''">
+			and g.from_type = #{fromType}
+		</if>
+		<if test="deFlag!=null and deFlag!=''">
+			and t.orther_flag = #{deFlag}
+		</if>
+		<if test="iffly!=null and iffly!=''">
+			and t.if_feidan = #{iffly}
+		</if>
+		<if test="sender!=null and sender!=''">
+			<!-- and g.sender in (${sender}) -->
+			and g.sender like CONCAT('%',#{sender},'%')
+		</if>
+		<if test="prodDesc!=null and prodDesc!=''">
+			and (select t1.prod_desc from TransportationM t1 where t1.trans_id = t.trans_id) like CONCAT('%',#{prodDesc},'%')
+		</if>
+		<if test="dsIfSettle!=null and dsIfSettle!=''">
+			and g.ds_if_settle = #{dsIfSettle}
+		</if>
+		<!--<if test="ifTaxTransport!=null and ifTaxTransport">
+			and t.if_tax_transport='Y'
+		</if>
+		<if test="ifTaxTransport!=null and !ifTaxTransport">
+			and t.if_tax_transport='N'
+		</if>-->
+		<if test="ifTaxTransport!=null and ifTaxTransport=='true'">
+			and t.if_tax_transport='Y'
+		</if>
+		<if test="ifTaxTransport!=null and ifTaxTransport=='false'">
+			and t.if_tax_transport='N'
+		</if>
+		<if test="ifSaveImage=='1'">
+			and t.comfirm_pic1_local!=''
+		</if>
+		<if test="ifSaveImage=='0'">
+			and IFNULL(t.comfirm_pic1_local,0)=0
+		</if>
+		<if test="goodTypeDesc!=null and goodTypeDesc!=''">
+			and t.good_type_desc like CONCAT('%', #{goodTypeDesc},'%')
+		</if>
+		<if test="payStatus!=null and payStatus!=''">
+			and p.status =#{payStatus}
+		</if>
+		<if test="ownerPayApplyFlag!=null and ownerPayApplyFlag!=''">
+			and p.owner_payapply_flag=#{ownerPayApplyFlag}
+		</if>
+		<if test="contractNumber != null and contractNumber != ''">
+			and g.contract_number like CONCAT('%', #{contractNumber},'%')
+		</if>
+		<if test="signStatus!=null and signStatus!=''">
+			and t.sign_status=#{signStatus}
+		</if>
+		<if test='settlePage=="Y"'>
+			order by t.finish_time desc
+		</if>
+		<if test='settlePage!="Y"'>
+			order by t.CREATE_DATE desc
+		</if>
+			
+	</select>
+	
+	<select id="listForGroup" resultType="com.brcc.business.transportbill.vo.TransportationDeliveryVo" parameterType="java.util.Map">
+		SELECT 
+		    t.bill_sender as 'billSender',
+		    t.bill_sender_mobile as 'billSenderMobile',
+		    t.receiver,
+		    t.receiver_mobile as 'receiverMobile',
+		    t.zcSure_date AS 'zcSureDate',
+		    t.js_remark AS 'jsRemark',
+		    t.delivery_id 'deliveryId',
+		    t.delivery_num as 'deliveryNum',
+		    t.publish_id 'publishId',
+		    t.publish_num AS publishNum,
+		    t.trans_id as transId,
+		    t.trans_num as transNum,
+		    d.id_num AS idNum,
+		    t.weight,
+		    t.price,
+		    t.amount,
+		    p.pay_amount AS payAmount,
+		    t.create_date AS createDate,
+		    t.company_id as companyId,
+		    c.company_name AS companyName, 
+		    c.bank_name as carrierBankName,
+		    c.bank_num as carrierBankNum,
+		    c.bank_owner as carrierBankOwner,
+		    t.start_plate startPlate,
+		    t.end_plate endPlate,
+		    t.driver_id driverId,
+		    t.comfirm_pic_local comfirmPicLocal,
+		    d.`name` AS name,
+		    t2.company_id AS driverCompanyId,
+		    c2.bank_name as driverBankName,
+		    c2.bank_num as driverBankNum,
+		    c2.bank_owner as driverBankOwner,
+		    t.vehicle_id vehicleId,
+		    v.vehicle_num AS vehicleNum,
+		    t.status,
+		    d.phone AS phone,
+		    IF(t.status = '10',
+		        '待取单',
+		        IF(t.status = '20',
+		            '待装货',
+		            IF(t.status = '30',
+		                '待收货',
+		                IF(t.status = '90',
+		                    '已完成',
+		                    IF(t.status = '00',
+		                        '已作废',
+		                        '待取单'))))) AS statusDesc,
+		    IFNULL(t.settle_weight, 0) settleWeight,
+		    IFNULL(t.settle_amount, 0) settleAmount,
+		    IFNULL(t.truck_loading_weight, 0) AS truckLoadingWeight,
+		    IFNULL(t.take_delivery_weight, 0) AS takeDeliveryWeight,
+		    t.operate_type operateType,
+		    IFNULL(round((t.truck_loading_weight-t.take_delivery_weight),2), 0) as "deductLossWeight",
+		    IFNULL(round(format((t.truck_loading_weight-t.take_delivery_weight),4)/t.truck_loading_weight,4), 0) as "deductLossRatio",
+		    IFNULL(t.settle_price, 0) settlePrice,
+		    t.price,
+		    t.orther_flag as ortherFlag,
+            t.bill_sender as billSender,
+            t.bill_sender_mobile as billSenderMobile,
+            t.good_type as goodType,
+            t.good_type_desc as goodTypeDesc,
+            t.if_fd_judge as ifFdJudge,
+            IF(t.if_fd_judge = 'Y',
+                '已评价',
+                '未评价') AS accFlag,
+            IF(t.orther_flag = '1',
+                '已处理',
+                '未处理') AS ortherFlagName,
+            IF(t.if_feidan = 'Y', '是', '不是') AS iffly,
+            g.prod_desc AS prodDesc,
+            g.from_type AS fromType,
+		    if(g.from_type = 'JK_U9', '新大宗采购',IF(g.from_type = 'JK_U11', IF( g.logistics_mark = 'X', '销售物流', '采购物流' ),  if(g.from_type = 'DS', '销售电商', if(g.from_type = 'PT', '平台货源',
+		    if(g.from_type = 'JK_U8', if(g.logistics_mark='X', '大宗销售', '大宗采购'), '平台货源'))))) as docOrigin,
+		    g.ps AS ps,
+            g.depend_num AS dependNum,
+            t.publish_company_id as publishCompanyId,
+            (SELECT 
+                    t1.company_name
+                FROM
+                    Company t1
+                WHERE
+                    t1.seq_id = t.publish_company_id) AS consignorName,
+            (SELECT 
+                    t1.user_name
+                FROM
+                    loginverify t1
+                WHERE
+                    t1.user_id = t.update_person) AS updatePersonName,
+            g.pin_dan_num AS pinDanNum,
+            t.update_date AS updateDate,
+            IF(t.settle_status = '10',
+                '未计算',
+                IF(t.settle_status = '20',
+                    '已计算',
+                    '未计算')) AS settleStatusDesc,
+            t.settle_status as settleStatus,
+            t.zf_id as zfId,
+            t.zf_num as zfNum,
+            t.loss_type AS lossType,
+            t.loss_ratio AS lossRatio,
+            IFNULL(t.loss_weight, 0) AS lossWeight,
+            IFNULL(t.good_price, 0) AS goodPrice,
+            g.sender AS sender,
+            g.js_type AS jsType,
+            (SELECT 
+                    c.early_warning_days
+                FROM
+                    company c
+                WHERE
+                    t.publish_company_id = c.seq_id) AS earlyWarningDays,
+            IF(t.finish_time IS NULL
+                    OR t.finish_time = '',
+                DATE_FORMAT(t.shSure_date, '%Y-%m-%d %H:%i:%s'),
+                DATE_FORMAT(t.finish_time, '%Y-%m-%d %H:%i:%s')) AS finishTime,
+            t.remark,
+            p.status AS payStatus,
+            IF((p.`status` = '10'),
+                '待支付',
+                IF((p.`status` = '20'),
+                    '已支付',
+                    IF((p.`status` = '00'),
+                        '已撤销',
+                        IF((p.`status` = '30'),
+                            '处理中',
+                            '待支付')))) AS payStatusDesc,
+            p.pay_date AS payDate,
+            IF(p.rece_bank_type = '1',
+                '发单人账号',
+                IF(p.rece_bank_type = '0',
+                    '承运人账号',
+                    if((SELECT count(1)
+                    FROM
+                        goodsorder_to_pay_info gp
+                    WHERE gp.publish_id = t.publish_id
+                    and gp.platform_id = t.platform_id) = 1, '发单人账号', '承运人账号')
+                    )) AS receBankTypeDesc,
+             IF(p.rece_bank_type = '1',
+                '1',
+                IF(p.rece_bank_type = '0',
+                    '0',
+                    if((SELECT count(1)
+                    FROM
+                        goodsorder_to_pay_info gp
+                    WHERE gp.publish_id = t.publish_id
+                    and gp.platform_id = t.platform_id) = 1, '1', '0')
+                    )) AS receBankType,
+             g.ds_if_settle as "dsIfSettle",
+             if(g.ds_if_settle=0,'否','是') as "dsIfSettleDesc",
+             <!-- c.bank_num, --><!-- 承运人银行账号 -->
+             ifnull(gp2.bank_num,'N') as "fdBankNum",<!-- 发单人维护账号 -->
+             gp2.bank_name as "fdBankName",
+             gp2.bank_card_owner as "fdBankCardOwner",
+             <!-- c.bank_name,
+             c.bank_owner, -->
+             (select ifnull(l.user_type, 'GS') from loginverify l  where l.company_id = t.company_id and l.driver_id = t.driver_id and l.platform_id = t.platform_id) as "userType",
+             t.if_tax_transport as ifTaxTransport,
+             if(t.if_tax_transport ='Y',round(t.price_tax,2),'') as "priceTax" ,
+             if(t.if_tax_transport ='Y' ,round(round(t.price_tax,2) * t.weight,2) ,'' ) as "taxAmount",
+             if(t.if_tax_transport ='Y' ,round(round(t.price_tax,2) * t.weight,2) ,'' ) as "amountTax",
+             if(t.if_tax_transport='Y', t.standard_tax,'') as "standardTax",                       
+             if(t.if_tax_transport='Y','是','否') as "ifTaxTransportDesc",
+             if(t.if_tax_transport='Y',(SELECT  t1.company_name FROM company t1 WHERE  t1.seq_id = t.carry_company_id),'') AS carryCompanyName,
+             if(t.if_tax_transport='Y',(SELECT  t1.contact_mobile FROM company t1 WHERE  t1.seq_id = t.carry_company_id),'') AS carryContactMobile,
+             t.if_upload_receipt_flag as ifUploadReceiptFlag,
+             t.comfirm_pic1_local as comfirmPic1Local,
+             g.if_payment as ifPayment, 
+             IF(g.if_payment = 'Y',
+                '是',
+                IF(g.if_payment = 'N',
+                    '否',
+                    '未知'))AS "ifPaymentDesc",
+             g.charge_price as chargePrice,
+             g.charge_price_type as chargePriceType,
+             t.owner_adjust_flag as ownerAdjustFlag,
+             t.owner_adjust_type as ownerAdjustType,
+             t.owner_adjust_amt as ownerAdjustAmt,
+             p.owner_adjust_tot_amt as ownerAdjustTotAmt,
+             t.broker_people_toll_type as brokerPeopleTollType,
+             t.broker_people_toll_amount as brokerPeopleTollAmount,
+             t.broker_people_toll_ratio as brokerPeopleTollRatio,
+             t.if_broker_people_toll_flag as ifBrokerPeopleTollFlag,
+             p.dump_truck_charge as dumpTruckCharge,
+             t.pound_location as poundLocation,
+             t.pound_num as poundNum,
+             IFNULL(p.transportation_amount, 0) as transportationAmount,
+             p.owner_payapply_flag as ownerPayapplyFlag,
+             t.shipping_time as shippingTime,
+             t.m_weight_flag as mWeightFlag,
+			 t.m_weight as mWeight,
+			 (select if(count(1)=0,'N','Y')
+				from apptms.pay_bill_cal_config pbc where pbc.company_id = t.publish_company_id
+				and pbc.if_unloading_weight_cal=1) as ifUnloadingWeightCal
+			 <!-- ifnull(j.dz_jk_cancel, 0) AS "dz_jk_cancel", -->
+			 <!-- if(i.if_invoice='2','已开票',if(i.if_invoice='1','开票中','未开票')) as "ifInvoice",
+             i.invoice_no -->
+		     <!--  CONCAT(if(ifnull(gp.bank_num,'N')='N',c.bank_num,gp.bank_num)) as "bankNum" -->
+		FROM
+		    (TransportationDelivery AS t
+		    LEFT JOIN pay_bill p ON t.zf_id = p.zf_id
+		        AND t.platform_id = p.platform_id)
+		        LEFT JOIN
+		    driver d ON t.driver_id = d.id
+		        LEFT JOIN
+		    vehicle v ON t.vehicle_id = v.vehicle_id
+		    	JOIN 
+		    loginverify t2 on t2.platform_id = t.platform_id
+		    AND t2.driver_id = t.driver_id
+		    	JOIN
+		    COMPANY c ON t.company_id=c.seq_id
+		    	JOIN
+		    COMPANY c2 ON t2.company_id=c2.seq_id              
+		         <!-- LEFT JOIN
+		    COMPANY c ON t.company_id=c.seq_id -->
+		       LEFT JOIN
+		    goodsorder_to_pay_info gp2 on t.publish_id=gp2.publish_id
+		        JOIN
+		    goodsorderm g ON g.publish_id = t.publish_id
+		WHERE t.platform_id = #{platformId}
+		  and t.sign_status = '20'
+		  and t.group_id = if(#{groupId}='0', '-1', #{groupId})
+		  and ifnull(p.owner_payapply_flag, '0') = "0"
+		<include refid="common.filterQuery" />	
+		<if test="ifPayment!=null and !ifPayment">
+			and IFNULL(g.if_payment, 'N') = 'N'
+		</if>
+		<if test="ifPayment!=null and ifPayment">
+			and IFNULL(g.if_payment, 'N') = 'Y'
+		</if>
+		<if test="ifCan!=null and ifCan">
+			and IFNULL(t.truck_loading_weight,0) &gt;0 and IFNULL(t.take_delivery_weight,0) &gt;0
+		</if>
+		<if test="ifCan!=null and !ifCan">
+			and (IFNULL(t.truck_loading_weight,0) &lt;=0 or IFNULL(t.take_delivery_weight,0) &lt;=0)
+		</if>
+		<if test='isAutoDisplay=="0"'>
+			and g.is_auto_display = '0'
+		</if>
+		<if test='isAutoDisplay=="1"'>
+			and g.is_auto_display = '1'
+		</if>
+		<if test="ifBrokerPeopleTollFlag!=null and ifBrokerPeopleTollFlag!=''">
+			and t.if_broker_people_toll_flag = #{ifBrokerPeopleTollFlag}
+		</if>
+		<if test="billSender!=null and billSender!=''">
+			and g.bill_sender like CONCAT('%',#{billSender},'%')
+		</if>
+		<!-- 发单人 -->
+		<if test="consignorName!=null and consignorName!=''">
+			and (SELECT t1.company_name FROM Company t1 WHERE t1.seq_id = t.publish_company_id) like CONCAT('%',#{consignorName},'%')
+		</if>
+		<if test="deliveryId!=null">
+			and t.delivery_id like CONCAT('%',#{deliveryId},'%')
+		</if>
+		<if test="transportationdeliveryId!=null">
+			and t.delivery_id = #{transportationdeliveryId}
+		</if>
+		<if test="payPublishId!=null">
+			and t.publish_id like CONCAT('%',#{payPublishId},'%')
+		</if>
+		<if test="accessFlag=='N'">
+			and (t.if_fd_judge is null or t.if_fd_judge='N') and (t.status='00' || t.status='90')
+		</if>
+		<if test="accessFlag=='Y'">
+			and t.if_fd_judge='Y' and (t.status='00' || t.status='90')
+		</if>
+		<if test="dependNum!=null and dependNum!=''">
+			and g.depend_num = #{dependNum}
+		</if>
+		<if test="settleflag=='10'">
+			and t.settle_amount = 0
+		</if>
+		<if test="settleflag=='20'">
+			and t.settle_amount &gt; 0
+		</if>
+		<if test="settleStatus=='10'">
+			and (t.settle_status = "10" or t.settle_status is null)
+		</if>
+		<if test="settleStatus=='20'">
+			and t.settle_status = "20" <!-- and p.owner_payapply_flag = "0" -->
+		</if>
+		<if test="name!=null and name!=''">
+			and d.name like CONCAT('%',#{name},'%')
+		</if>
+		<if test="vehicleNum!=null and vehicleNum!=''">
+			and v.vehicle_num like CONCAT('%',#{vehicleNum},'%')
+		</if>
+		<if test="ps!=null and ps!=''">
+			and g.ps like CONCAT('%',#{ps},'%')
+		</if>
+		<if test="transId!=null">
+			and t.trans_id = #{transId}
+		</if>
+		<if test="companyName!=null and companyName!=''">
+			and (select  company_name from Company a where a.platform_id = t.platform_id and a.seq_id = t.company_id)  like concat('%',#{companyName} ,'%')
+		</if>
+		<if test="invoiceNo!=null and invoiceNo!=''">
+			and i.invoice_no like CONCAT('%',#{invoiceNo},'%')
+		</if>
+		<if test="ifInvoice!=null and ifInvoice!=''">
+			and IFNULL(i.if_invoice,0)=#{ifInvoice}
+		</if>
+		<if test="publishId!=null">
+			and t.publish_id = #{publishId}
+		</if>	
+		<if test="pinDan=='1'">
+			and g.pin_dan_num is not null
+		</if>
+		<if test="pinDan=='2'">
+			and g.pin_dan_num is null
+		</if>	
+		<if test="ifPaid!=null and ifPaid!=''">
+			and IFNULL(p.status,'10') = #{ifPaid}
+		</if>
+		<if test="carriCompany!=null and carriCompany!=''">
+			and t.company_id IN (select t3.seq_id from Company t3 where t3.company_name like CONCAT('%', #{carriCompany},'%'))
+		</if>
+		<if test="earlyWarning=='Y'">
+			and t.create_date &lt;=DATE_SUB(now(),INTERVAL (select c.early_warning_days FROM company c where t.publish_company_id=c.seq_id) day)
+			AND t.status&gt;00 AND t.status&lt;90
+		</if>
+		<if test="earlyWarning=='N'">
+			and t.create_date &gt;=DATE_SUB(now(),INTERVAL (select c.early_warning_days FROM company c where t.publish_company_id=c.seq_id) day)
+			AND t.status&gt;00 AND t.status&lt;90
+		</if>
+		<if test="rqStart!=null">
+			and t.create_date &gt;= #{rqStart,jdbcType=TIMESTAMP}
+			<!-- and t.create_date &gt;= STR_TO_DATE(CONCAT(#{rqStart},':00'),'%Y-%m-%d %H:%i:%s') -->
+		</if>
+		<if test="rqEnd!=null">
+			and t.create_date &lt;= #{rqEnd,jdbcType=TIMESTAMP}
+			<!-- and t.create_date &lt;= STR_TO_DATE(CONCAT(#{rqEnd},':59'),'%Y-%m-%d %H:%i:%s') -->
+		</if>
+		<if test="receRqStart!=null">
+			and t.finish_time &gt;= #{receRqStart,jdbcType=TIMESTAMP}
+			<!-- and t.finish_time &gt;= STR_TO_DATE(CONCAT(#{receRqStart},':00'),'%Y-%m-%d %H:%i:%s') -->
+		</if>
+		<if test="receRqEnd!=null">
+			and t.finish_time &lt;= #{receRqEnd,jdbcType=TIMESTAMP}
+			<!-- and t.finish_time &lt;= STR_TO_DATE(CONCAT(#{receRqEnd},':59'),'%Y-%m-%d %H:%i:%s') -->
+		</if>
+		<if test="startPlate!=null and startPlate!=''">
+			and t.start_plate like CONCAT('%',#{startPlate},'%')
+		</if>
+		<if test="endPlate!=null and endPlate!=''">
+			and t.end_plate like CONCAT('%',#{endPlate},'%')
+		</if>
+		<if test="status!=null and status!=''">
+			and t.status = #{status}
+		</if>
+		<if test="fromType!=null and fromType!=''">
+			and g.from_type = #{fromType}
+		</if>
+		<if test="deFlag!=null and deFlag!=''">
+			and t.orther_flag = #{deFlag}
+		</if>
+		<if test="iffly!=null and iffly!=''">
+			and t.if_feidan = #{iffly}
+		</if>
+		<if test="sender!=null and sender!=''">
+			<!-- and g.sender in (${sender}) -->
+			and g.sender like CONCAT('%',#{sender},'%')
+		</if>
+		<if test="prodDesc!=null and prodDesc!=''">
+			and (select t1.prod_desc from TransportationM t1 where t1.trans_id = t.trans_id) like CONCAT('%',#{prodDesc},'%')
+		</if>
+		<if test="dsIfSettle!=null and dsIfSettle!=''">
+			and g.ds_if_settle = #{dsIfSettle}
+		</if>
+		<!-- <if test="ifTaxTransport!=null and ifTaxTransport!=''">
+			and t.if_tax_transport=#{ifTaxTransport}
+		</if> -->
+		<if test="ifTaxTransport!=null and ifTaxTransport">
+			and t.if_tax_transport='Y'
+		</if>
+		<if test="ifTaxTransport!=null and !ifTaxTransport">
+			and t.if_tax_transport='N'
+		</if>
+		<if test="ifSaveImage=='1'">
+			and t.comfirm_pic1_local!=''
+		</if>
+		<if test="ifSaveImage=='0'">
+			and IFNULL(t.comfirm_pic1_local,0)=0
+		</if>
+		<if test="goodTypeDesc!=null and goodTypeDesc!=''">
+			and t.good_type_desc like CONCAT('%', #{goodTypeDesc},'%')
+		</if>
+		<if test='settlePage=="Y"'>
+			order by t.finish_time desc
+		</if>
+		<if test='settlePage!="Y"'>
+			order by t.CREATE_DATE desc
+		</if>
+			
+	</select>
+	<select id="listForGroupExport" resultType="com.brcc.business.transportbill.vo.TransportationDeliveryVo" parameterType="java.util.Map">
+		SELECT 
+		    t.bill_sender as 'billSender',
+		    t.bill_sender_mobile as 'billSenderMobile',
+		    t.receiver,
+		    t.receiver_mobile as 'receiverMobile',
+		    t.zcSure_date AS 'zcSureDate',
+		    t.js_remark AS 'jsRemark',
+		    t.delivery_id 'deliveryId',
+		    t.delivery_num as 'deliveryNum',
+		    t.publish_id 'publishId',
+		    t.publish_num AS publishNum,
+		    t.trans_id as transId,
+		    t.trans_num as transNum,
+		    d.id_num AS idNum,
+		    t.weight,
+		    t.price,
+		    t.amount,
+		    p.pay_amount AS payAmount,
+		    t.create_date AS createDate,
+		    t.company_id as companyId,
+		    c.company_name AS companyName, 
+		    c.bank_name as carrierBankName,
+		    c.bank_num as carrierBankNum,
+		    c.bank_owner as carrierBankOwner,
+		    t.start_plate startPlate,
+		    t.end_plate endPlate,
+		    t.driver_id driverId,
+		    t.comfirm_pic_local comfirmPicLocal,
+		    d.`name` AS name,
+		    t2.company_id AS driverCompanyId,
+		    c2.bank_name as driverBankName,
+		    c2.bank_num as driverBankNum,
+		    c2.bank_owner as driverBankOwner,
+		    t.vehicle_id vehicleId,
+		    v.vehicle_num AS vehicleNum,
+		    t.status,
+		    d.phone AS phone,
+		    IF(t.status = '10',
+		        '待取单',
+		        IF(t.status = '20',
+		            '待装货',
+		            IF(t.status = '30',
+		                '待收货',
+		                IF(t.status = '90',
+		                    '已完成',
+		                    IF(t.status = '00',
+		                        '已作废',
+		                        '待取单'))))) AS statusDesc,
+		    IFNULL(t.settle_weight, 0) settleWeight,
+		    IFNULL(t.settle_amount, 0) settleAmount,
+		    IFNULL(t.truck_loading_weight, 0) AS truckLoadingWeight,
+		    IFNULL(t.take_delivery_weight, 0) AS takeDeliveryWeight,
+		    t.operate_type operateType,
+		    IFNULL(round((t.truck_loading_weight-t.take_delivery_weight),2), 0) as "deductLossWeight",
+		    IFNULL(round(format((t.truck_loading_weight-t.take_delivery_weight),4)/t.truck_loading_weight,4), 0) as "deductLossRatio",
+		    IFNULL(t.settle_price, 0) settlePrice,
+		    t.price,
+		    t.orther_flag as ortherFlag,
+            t.bill_sender as billSender,
+            t.bill_sender_mobile as billSenderMobile,
+            t.good_type as goodType,
+            t.good_type_desc as goodTypeDesc,
+            t.if_fd_judge as ifFdJudge,
+            IF(t.if_fd_judge = 'Y',
+                '已评价',
+                '未评价') AS accFlag,
+            IF(t.orther_flag = '1',
+                '已处理',
+                '未处理') AS ortherFlagName,
+            IF(t.if_feidan = 'Y', '是', '不是') AS iffly,
+            g.prod_desc AS prodDesc,
+            g.from_type AS fromType,
+		    if(g.from_type = 'JK_U9', '新大宗采购',IF(g.from_type = 'JK_U11', IF( g.logistics_mark = 'X', '销售物流', '采购物流' ),  if(g.from_type = 'DS', '销售电商', if(g.from_type = 'PT', '平台货源',
+		    if(g.from_type = 'JK_U8', if(g.logistics_mark='X', '大宗销售', '大宗采购'), '平台货源'))))) as docOrigin,
+		    g.ps AS ps,
+            g.depend_num AS dependNum,
+            t.publish_company_id as publishCompanyId,
+            (SELECT 
+                    t1.company_name
+                FROM
+                    Company t1
+                WHERE
+                    t1.seq_id = t.publish_company_id) AS consignorName,
+            (SELECT 
+                    t1.user_name
+                FROM
+                    loginverify t1
+                WHERE
+                    t1.user_id = t.update_person) AS updatePersonName,
+            g.pin_dan_num AS pinDanNum,
+            t.update_date AS updateDate,
+            IF(t.settle_status = '10',
+                '未计算',
+                IF(t.settle_status = '20',
+                    '已计算',
+                    '未计算')) AS settleStatusDesc,
+            t.settle_status as settleStatus,
+            t.zf_id as zfId,
+            t.zf_num as zfNum,
+            t.loss_type AS lossType,
+            t.loss_ratio AS lossRatio,
+            IFNULL(t.loss_weight, 0) AS lossWeight,
+            IFNULL(t.good_price, 0) AS goodPrice,
+            g.sender AS sender,
+            g.js_type AS jsType,
+            (SELECT 
+                    c.early_warning_days
+                FROM
+                    company c
+                WHERE
+                    t.publish_company_id = c.seq_id) AS earlyWarningDays,
+            IF(t.finish_time IS NULL
+                    OR t.finish_time = '',
+                DATE_FORMAT(t.shSure_date, '%Y-%m-%d %H:%i:%s'),
+                DATE_FORMAT(t.finish_time, '%Y-%m-%d %H:%i:%s')) AS finishTime,
+            t.remark,
+            p.status AS payStatus,
+            IF((p.`status` = '10'),
+                '待支付',
+                IF((p.`status` = '20'),
+                    '已支付',
+                    IF((p.`status` = '00'),
+                        '已撤销',
+                        IF((p.`status` = '30'),
+                            '处理中',
+                            '待支付')))) AS payStatusDesc,
+            p.pay_date AS payDate,
+            IF(p.rece_bank_type = '1',
+                '发单人账号',
+                IF(p.rece_bank_type = '0',
+                    '承运人账号',
+                    if((SELECT count(1)
+                    FROM
+                        goodsorder_to_pay_info gp
+                    WHERE gp.publish_id = t.publish_id
+                    and gp.platform_id = t.platform_id) = 1, '发单人账号', '承运人账号')
+                    )) AS receBankTypeDesc,
+             IF(p.rece_bank_type = '1',
+                '1',
+                IF(p.rece_bank_type = '0',
+                    '0',
+                    if((SELECT count(1)
+                    FROM
+                        goodsorder_to_pay_info gp
+                    WHERE gp.publish_id = t.publish_id
+                    and gp.platform_id = t.platform_id) = 1, '1', '0')
+                    )) AS receBankType,
+             g.ds_if_settle as "dsIfSettle",
+             if(g.ds_if_settle=0,'否','是') as "dsIfSettleDesc",
+             <!-- c.bank_num, --><!-- 承运人银行账号 -->
+             ifnull(gp2.bank_num,'N') as "fdBankNum",<!-- 发单人维护账号 -->
+             gp2.bank_name as "fdBankName",
+             gp2.bank_card_owner as "fdBankCardOwner",
+             <!-- c.bank_name,
+             c.bank_owner, -->
+             (select ifnull(l.user_type, 'GS') from loginverify l  where l.company_id = t.company_id and l.driver_id = t.driver_id and l.platform_id = t.platform_id) as "userType",
+             t.if_tax_transport as ifTaxTransport,
+             if(t.if_tax_transport ='Y',round(t.price_tax,2),'') as "priceTax" ,
+             if(t.if_tax_transport ='Y' ,round(round(t.price_tax,2) * t.weight,2) ,'' ) as "taxAmount",
+             if(t.if_tax_transport ='Y' ,round(round(t.price_tax,2) * t.weight,2) ,'' ) as "amountTax",
+             if(t.if_tax_transport='Y', t.standard_tax,'') as "standardTax",                       
+             if(t.if_tax_transport='Y','是','否') as "ifTaxTransportDesc",
+             if(t.if_tax_transport='Y',(SELECT  t1.company_name FROM company t1 WHERE  t1.seq_id = t.carry_company_id),'') AS carryCompanyName,
+             if(t.if_tax_transport='Y',(SELECT  t1.contact_mobile FROM company t1 WHERE  t1.seq_id = t.carry_company_id),'') AS carryContactMobile,
+             t.if_upload_receipt_flag as ifUploadReceiptFlag,
+             t.comfirm_pic1_local as comfirmPic1Local,
+             g.if_payment as ifPayment, 
+             IF(g.if_payment = 'Y',
+                '是',
+                IF(g.if_payment = 'N',
+                    '否',
+                    '未知'))AS "ifPaymentDesc",
+             g.charge_price as chargePrice,
+             g.charge_price_type as chargePriceType,
+             t.owner_adjust_flag as ownerAdjustFlag,
+             t.owner_adjust_type as ownerAdjustType,
+             t.owner_adjust_amt as ownerAdjustAmt,
+             p.owner_adjust_tot_amt as ownerAdjustTotAmt,
+             t.broker_people_toll_type as brokerPeopleTollType,
+             t.broker_people_toll_amount as brokerPeopleTollAmount,
+             t.broker_people_toll_ratio as brokerPeopleTollRatio,
+             t.if_broker_people_toll_flag as ifBrokerPeopleTollFlag,
+             p.dump_truck_charge as dumpTruckCharge,
+             t.pound_location as poundLocation,
+             t.pound_num as poundNum,
+             IFNULL(p.transportation_amount, 0) as transportationAmount,
+             p.owner_payapply_flag as ownerPayapplyFlag,
+             t.shipping_time as shippingTime,
+             pc.rece_company_id AS 'receCompanyId',
+		     pc.rece_company_name AS 'receCompanyName',
+		     pc.pay_from_type AS 'payFromType',
+		     IF(pc.pay_from_type = '2',
+		        '经纪人结算',
+		        '承运人结算') AS 'payFromTypeDesc',
+		     pc.rece_bank_name AS 'receBankName',
+		     pc.rece_bank_num AS 'receBankNum',
+		     pc.rece_bank_owner AS 'receBankOwner',
+		     pc.pay_amount AS 'payDriverAmount'
+			 <!-- ifnull(j.dz_jk_cancel, 0) AS "dz_jk_cancel", -->
+			 <!-- if(i.if_invoice='2','已开票',if(i.if_invoice='1','开票中','未开票')) as "ifInvoice",
+             i.invoice_no -->
+		     <!--  CONCAT(if(ifnull(gp.bank_num,'N')='N',c.bank_num,gp.bank_num)) as "bankNum" -->
+		FROM
+		    (TransportationDelivery AS t
+		    LEFT JOIN pay_bill p ON t.zf_id = p.zf_id
+		        AND t.platform_id = p.platform_id)
+		        LEFT JOIN
+		    driver d ON t.driver_id = d.id
+		        LEFT JOIN
+		    vehicle v ON t.vehicle_id = v.vehicle_id
+		    	JOIN 
+		    loginverify t2 on t2.platform_id = t.platform_id
+		    AND t2.driver_id = t.driver_id
+		    	JOIN
+		    COMPANY c ON t.company_id=c.seq_id
+		    	JOIN
+		    COMPANY c2 ON t2.company_id=c2.seq_id              
+		         <!-- LEFT JOIN
+		    COMPANY c ON t.company_id=c.seq_id -->
+		       LEFT JOIN
+		    goodsorder_to_pay_info gp2 on t.publish_id=gp2.publish_id
+		        JOIN
+		    goodsorderm g ON g.publish_id = t.publish_id
+		    	LEFT JOIN 
+            pay_bill_child pc ON (pc.zf_id = p.zf_id  AND pc.platform_id = p.platform_id)     
+		WHERE t.platform_id = #{platformId}
+		  and t.sign_status = '20'
+		  and t.group_id = if(#{groupId}='0', '-1', #{groupId})
+		  and ifnull(p.owner_payapply_flag, '0') = "0"
+		<include refid="common.filterQuery" />	
+		<if test="ifPayment!=null and !ifPayment">
+			and IFNULL(g.if_payment, 'N') = 'N'
+		</if>
+		<if test="ifPayment!=null and ifPayment">
+			and IFNULL(g.if_payment, 'N') = 'Y'
+		</if>
+		<if test="ifCan!=null and ifCan">
+			and IFNULL(t.truck_loading_weight,0) &gt;0 and IFNULL(t.take_delivery_weight,0) &gt;0
+		</if>
+		<if test="ifCan!=null and !ifCan">
+			and (IFNULL(t.truck_loading_weight,0) &lt;=0 or IFNULL(t.take_delivery_weight,0) &lt;=0)
+		</if>
+		<if test='isAutoDisplay=="0"'>
+			and g.is_auto_display = '0'
+		</if>
+		<if test='isAutoDisplay=="1"'>
+			and g.is_auto_display = '1'
+		</if>
+		<if test="ifBrokerPeopleTollFlag!=null and ifBrokerPeopleTollFlag!=''">
+			and t.if_broker_people_toll_flag = #{ifBrokerPeopleTollFlag}
+		</if>
+		<if test="billSender!=null and billSender!=''">
+			and g.bill_sender like CONCAT('%',#{billSender},'%')
+		</if>
+		<if test="deliveryId!=null">
+			and t.delivery_id like CONCAT('%',#{deliveryId},'%')
+		</if>
+		<if test="transportationdeliveryId!=null">
+			and t.delivery_id = #{transportationdeliveryId}
+		</if>
+		<if test="payPublishId!=null">
+			and t.publish_id like CONCAT('%',#{payPublishId},'%')
+		</if>
+		<if test="accessFlag=='N'">
+			and (t.if_fd_judge is null or t.if_fd_judge='N') and (t.status='00' || t.status='90')
+		</if>
+		<if test="accessFlag=='Y'">
+			and t.if_fd_judge='Y' and (t.status='00' || t.status='90')
+		</if>
+		<if test="dependNum!=null and dependNum!=''">
+			and g.depend_num = #{dependNum}
+		</if>
+		<if test="settleflag=='10'">
+			and t.settle_amount = 0
+		</if>
+		<if test="settleflag=='20'">
+			and t.settle_amount &gt; 0
+		</if>
+		<if test="settleStatus=='10'">
+			and (t.settle_status = "10" or t.settle_status is null)
+		</if>
+		<if test="settleStatus=='20'">
+			and t.settle_status = "20" <!-- and p.owner_payapply_flag = "0" -->
+		</if>
+		<if test="name!=null and name!=''">
+			and d.name like CONCAT('%',#{name},'%')
+		</if>
+		<if test="vehicleNum!=null and vehicleNum!=''">
+			and v.vehicle_num like CONCAT('%',#{vehicleNum},'%')
+		</if>
+		<if test="ps!=null and ps!=''">
+			and g.ps like CONCAT('%',#{ps},'%')
+		</if>
+		<if test="transId!=null">
+			and t.trans_id = #{transId}
+		</if>
+		<if test="companyName!=null and companyName!=''">
+			and (select  company_name from Company a where a.platform_id = t.platform_id and a.seq_id = t.company_id)  like concat('%',#{companyName} ,'%')
+		</if>
+		<if test="invoiceNo!=null and invoiceNo!=''">
+			and i.invoice_no like CONCAT('%',#{invoiceNo},'%')
+		</if>
+		<if test="ifInvoice!=null and ifInvoice!=''">
+			and IFNULL(i.if_invoice,0)=#{ifInvoice}
+		</if>
+		<if test="publishId!=null">
+			and t.publish_id = #{publishId}
+		</if>
+		<!-- 发单人 -->
+		<if test="consignorName!=null and consignorName!=''">
+			and (SELECT t1.company_name FROM Company t1 WHERE t1.seq_id = t.publish_company_id) like CONCAT('%',#{consignorName},'%')
+		</if>	
+		<if test="pinDan=='1'">
+			and g.pin_dan_num is not null
+		</if>
+		<if test="pinDan=='2'">
+			and g.pin_dan_num is null
+		</if>	
+		<if test="ifPaid!=null and ifPaid!=''">
+			and IFNULL(p.status,'10') = #{ifPaid}
+		</if>
+		<if test="carriCompany!=null and carriCompany!=''">
+			and t.company_id IN (select t3.seq_id from Company t3 where t3.company_name like CONCAT('%', #{carriCompany},'%'))
+		</if>
+		<if test="earlyWarning=='Y'">
+			and t.create_date &lt;=DATE_SUB(now(),INTERVAL (select c.early_warning_days FROM company c where t.publish_company_id=c.seq_id) day)
+			AND t.status&gt;00 AND t.status&lt;90
+		</if>
+		<if test="earlyWarning=='N'">
+			and t.create_date &gt;=DATE_SUB(now(),INTERVAL (select c.early_warning_days FROM company c where t.publish_company_id=c.seq_id) day)
+			AND t.status&gt;00 AND t.status&lt;90
+		</if>
+		<if test="rqStart!=null">
+			and t.create_date &gt;= #{rqStart,jdbcType=TIMESTAMP}
+			<!-- and t.create_date &gt;= STR_TO_DATE(CONCAT(#{rqStart},':00'),'%Y-%m-%d %H:%i:%s') -->
+		</if>
+		<if test="rqEnd!=null">
+			and t.create_date &lt;= #{rqEnd,jdbcType=TIMESTAMP}
+			<!-- and t.create_date &lt;= STR_TO_DATE(CONCAT(#{rqEnd},':59'),'%Y-%m-%d %H:%i:%s') -->
+		</if>
+		<if test="receRqStart!=null">
+			and t.finish_time &gt;= #{receRqStart,jdbcType=TIMESTAMP}
+			<!-- and t.finish_time &gt;= STR_TO_DATE(CONCAT(#{receRqStart},':00'),'%Y-%m-%d %H:%i:%s') -->
+		</if>
+		<if test="receRqEnd!=null">
+			and t.finish_time &lt;= #{receRqEnd,jdbcType=TIMESTAMP}
+			<!-- and t.finish_time &lt;= STR_TO_DATE(CONCAT(#{receRqEnd},':59'),'%Y-%m-%d %H:%i:%s') -->
+		</if>
+		<if test="startPlate!=null and startPlate!=''">
+			and t.start_plate like CONCAT('%',#{startPlate},'%')
+		</if>
+		<if test="endPlate!=null and endPlate!=''">
+			and t.end_plate like CONCAT('%',#{endPlate},'%')
+		</if>
+		<if test="status!=null and status!=''">
+			and t.status = #{status}
+		</if>
+		<if test="fromType!=null and fromType!=''">
+			and g.from_type = #{fromType}
+		</if>
+		<if test="deFlag!=null and deFlag!=''">
+			and t.orther_flag = #{deFlag}
+		</if>
+		<if test="iffly!=null and iffly!=''">
+			and t.if_feidan = #{iffly}
+		</if>
+		<if test="sender!=null and sender!=''">
+			<!-- and g.sender in (${sender}) -->
+			and g.sender like CONCAT('%',#{sender},'%')
+		</if>
+		<if test="prodDesc!=null and prodDesc!=''">
+			and (select t1.prod_desc from TransportationM t1 where t1.trans_id = t.trans_id) like CONCAT('%',#{prodDesc},'%')
+		</if>
+		<if test="dsIfSettle!=null and dsIfSettle!=''">
+			and g.ds_if_settle = #{dsIfSettle}
+		</if>
+		<!-- <if test="ifTaxTransport!=null and ifTaxTransport!=''">
+			and t.if_tax_transport=#{ifTaxTransport}
+		</if> -->
+		<if test="ifTaxTransport!=null and ifTaxTransport">
+			and t.if_tax_transport='Y'
+		</if>
+		<if test="ifTaxTransport!=null and !ifTaxTransport">
+			and t.if_tax_transport='N'
+		</if>
+		<if test="ifSaveImage=='1'">
+			and t.comfirm_pic1_local!=''
+		</if>
+		<if test="ifSaveImage=='0'">
+			and IFNULL(t.comfirm_pic1_local,0)=0
+		</if>
+		<if test="goodTypeDesc!=null and goodTypeDesc!=''">
+			and t.good_type_desc like CONCAT('%', #{goodTypeDesc},'%')
+		</if>
+		<if test='settlePage=="Y"'>
+			order by t.finish_time desc
+		</if>
+		<if test='settlePage!="Y"'>
+			order by t.CREATE_DATE desc
+		</if>
+			
+	</select>
+	
+	<select id="listForCancelAudit" resultType="com.brcc.business.transportbill.vo.TransportationDeliveryVo" parameterType="java.util.Map">
+		SELECT 
+		    t.bill_sender as 'billSender',
+		    t.bill_sender_mobile as 'billSenderMobile',
+		    t.receiver,
+		    t.receiver_mobile as 'receiverMobile',
+		    t.zcSure_date AS 'zcSureDate',
+		    t.js_remark AS 'jsRemark',
+		    t.delivery_id 'deliveryId',
+		    t.delivery_num as 'deliveryNum',
+		    t.publish_id 'publishId',
+		    t.publish_num AS publishNum,
+		    t.trans_id as transId,
+		    t.trans_num as transNum,
+		    d.id_num AS idNum,
+		    t.weight,
+		    t.price,
+		    t.amount,
+		    p.pay_amount AS payAmount,
+		    t.create_date AS createDate,
+		    t.company_id as companyId,
+		    c.company_name AS companyName, 
+		    c.bank_name as carrierBankName,
+		    c.bank_num as carrierBankNum,
+		    c.bank_owner as carrierBankOwner,
+		    t.start_plate startPlate,
+		    t.end_plate endPlate,
+		    t.driver_id driverId,
+		    t.comfirm_pic_local comfirmPicLocal,
+		    d.`name` AS name,
+		    t2.company_id AS driverCompanyId,
+		    c2.bank_name as driverBankName,
+		    c2.bank_num as driverBankNum,
+		    c2.bank_owner as driverBankOwner,
+		    t.vehicle_id vehicleId,
+		    v.vehicle_num AS vehicleNum,
+		    t.status,
+		    d.phone AS phone,
+		    IF(t.status = '10',
+		        '待取单',
+		        IF(t.status = '20',
+		            '待装货',
+		            IF(t.status = '30',
+		                '待收货',
+		                IF(t.status = '90',
+		                    '已完成',
+		                    IF(t.status = '00',
+		                        '已作废',
+		                        '待取单'))))) AS statusDesc,
+		    IFNULL(t.settle_weight, 0) settleWeight,
+		    IFNULL(t.settle_amount, 0) settleAmount,
+		    IFNULL(t.truck_loading_weight, 0) AS truckLoadingWeight,
+		    IFNULL(t.take_delivery_weight, 0) AS takeDeliveryWeight,
+		    t.operate_type operateType,
+		    IFNULL(round((t.truck_loading_weight-t.take_delivery_weight),2), 0) as "deductLossWeight",
+		    IFNULL(round(format((t.truck_loading_weight-t.take_delivery_weight),4)/t.truck_loading_weight,4), 0) as "deductLossRatio",
+		    IFNULL(t.settle_price, 0) settlePrice,
+		    t.price,
+		    t.orther_flag as ortherFlag,
+            t.bill_sender as billSender,
+            t.bill_sender_mobile as billSenderMobile,
+            t.good_type as goodType,
+            t.good_type_desc as goodTypeDesc,
+            t.if_fd_judge as ifFdJudge,
+            IF(t.if_fd_judge = 'Y',
+                '已评价',
+                '未评价') AS accFlag,
+            IF(t.orther_flag = '1',
+                '已处理',
+                '未处理') AS ortherFlagName,
+            IF(t.if_feidan = 'Y', '是', '不是') AS iffly,
+            g.prod_desc AS prodDesc,
+            g.from_type AS fromType,
+		    if(g.from_type = 'JK_U9', '新大宗采购', IF(g.from_type = 'JK_U11', IF( g.logistics_mark = 'X', '销售物流', '采购物流' ), if(g.from_type = 'DS', '销售电商', if(g.from_type = 'PT', '平台货源',
+		    if(g.from_type = 'JK_U8', if(g.logistics_mark='X', '大宗销售', '大宗采购'), '平台货源'))))) as docOrigin,
+		    g.ps AS ps,
+            g.depend_num AS dependNum,
+            t.publish_company_id as publishCompanyId,
+            (SELECT 
+                    t1.company_name
+                FROM
+                    Company t1
+                WHERE
+                    t1.seq_id = t.publish_company_id) AS consignorName,
+            (SELECT 
+                    t1.user_name
+                FROM
+                    loginverify t1
+                WHERE
+                    t1.user_id = t.update_person) AS updatePersonName,
+            g.pin_dan_num AS pinDanNum,
+            t.update_date AS updateDate,
+            IF(t.settle_status = '10',
+                '未计算',
+                IF(t.settle_status = '20',
+                    '已计算',
+                    '未计算')) AS settleStatusDesc,
+            t.settle_status as settleStatus,
+            t.zf_id as zfId,
+            t.zf_num as zfNum,
+            t.loss_type AS lossType,
+            t.loss_ratio AS lossRatio,
+            IFNULL(t.loss_weight, 0) AS lossWeight,
+            IFNULL(t.good_price, 0) AS goodPrice,
+            g.sender AS sender,
+            g.js_type AS jsType,
+            (SELECT 
+                    c.early_warning_days
+                FROM
+                    company c
+                WHERE
+                    t.publish_company_id = c.seq_id) AS earlyWarningDays,
+            IF(t.finish_time IS NULL
+                    OR t.finish_time = '',
+                DATE_FORMAT(t.shSure_date, '%Y-%m-%d %H:%i:%s'),
+                DATE_FORMAT(t.finish_time, '%Y-%m-%d %H:%i:%s')) AS finishTime,
+            t.remark,
+            p.status AS payStatus,
+            IF((p.`status` = '10'),
+                '待支付',
+                IF((p.`status` = '20'),
+                    '已支付',
+                    IF((p.`status` = '00'),
+                        '已撤销',
+                        IF((p.`status` = '30'),
+                            '处理中',
+                            '待支付')))) AS payStatusDesc,
+            p.pay_date AS payDate,
+            IF(p.rece_bank_type = '1',
+                '发单人账号',
+                IF(p.rece_bank_type = '0',
+                    '承运人账号',
+                    if((SELECT count(1)
+                    FROM
+                        goodsorder_to_pay_info gp
+                    WHERE gp.publish_id = t.publish_id
+                    and gp.platform_id = t.platform_id) = 1, '发单人账号', '承运人账号')
+                    )) AS receBankTypeDesc,
+             IF(p.rece_bank_type = '1',
+                '1',
+                IF(p.rece_bank_type = '0',
+                    '0',
+                    if((SELECT count(1)
+                    FROM
+                        goodsorder_to_pay_info gp
+                    WHERE gp.publish_id = t.publish_id
+                    and gp.platform_id = t.platform_id) = 1, '1', '0')
+                    )) AS receBankType,
+             g.ds_if_settle as "dsIfSettle",
+             if(g.ds_if_settle=0,'否','是') as "dsIfSettleDesc",
+             <!-- c.bank_num, --><!-- 承运人银行账号 -->
+             ifnull(gp2.bank_num,'N') as "fdBankNum",<!-- 发单人维护账号 -->
+             gp2.bank_name as "fdBankName",
+             gp2.bank_card_owner as "fdBankCardOwner",
+             <!-- c.bank_name,
+             c.bank_owner, -->
+             (select ifnull(l.user_type, 'GS') from loginverify l  where l.company_id = t.company_id and l.driver_id = t.driver_id and l.platform_id = t.platform_id) as "userType",
+             t.if_tax_transport as ifTaxTransport,
+             if(t.if_tax_transport ='Y',round(t.price_tax,2),'') as "priceTax" ,
+             if(t.if_tax_transport ='Y' ,round(round(t.price_tax,2) * t.weight,2) ,'' ) as "taxAmount",
+             if(t.if_tax_transport ='Y' ,round(round(t.price_tax,2) * t.weight,2) ,'' ) as "amountTax",
+             if(t.if_tax_transport='Y', t.standard_tax,'') as "standardTax",                       
+             if(t.if_tax_transport='Y','是','否') as "ifTaxTransportDesc",
+             if(t.if_tax_transport='Y',(SELECT  t1.company_name FROM company t1 WHERE  t1.seq_id = t.carry_company_id),'') AS carryCompanyName,
+             if(t.if_tax_transport='Y',(SELECT  t1.contact_mobile FROM company t1 WHERE  t1.seq_id = t.carry_company_id),'') AS carryContactMobile,
+             t.if_upload_receipt_flag as ifUploadReceiptFlag,
+             t.comfirm_pic1_local as comfirmPic1Local,
+             g.if_payment as ifPayment, 
+             IF(g.if_payment = 'Y',
+                '是',
+                IF(g.if_payment = 'N',
+                    '否',
+                    '未知'))AS "ifPaymentDesc",
+             g.charge_price as chargePrice,
+             g.charge_price_type as chargePriceType,
+             t.owner_adjust_flag as ownerAdjustFlag,
+             t.owner_adjust_type as ownerAdjustType,
+             t.owner_adjust_amt as ownerAdjustAmt,
+             p.owner_adjust_tot_amt as ownerAdjustTotAmt,
+             t.broker_people_toll_type as brokerPeopleTollType,
+             t.broker_people_toll_amount as brokerPeopleTollAmount,
+             t.broker_people_toll_ratio as brokerPeopleTollRatio,
+             t.if_broker_people_toll_flag as ifBrokerPeopleTollFlag,
+             p.dump_truck_charge as dumpTruckCharge,
+             t.pound_location as poundLocation,
+             t.pound_num as poundNum,
+             IFNULL(p.transportation_amount, 0) as transportationAmount,
+             p.owner_payapply_flag as ownerPayapplyFlag,
+             p.owner_payapply_cancel_flag as ownerPayapplyCancelFlag,
+             t.shipping_time as shippingTime
+			 <!-- ifnull(j.dz_jk_cancel, 0) AS "dz_jk_cancel", -->
+			 <!-- if(i.if_invoice='2','已开票',if(i.if_invoice='1','开票中','未开票')) as "ifInvoice",
+             i.invoice_no -->
+		     <!--  CONCAT(if(ifnull(gp.bank_num,'N')='N',c.bank_num,gp.bank_num)) as "bankNum" -->
+		FROM
+		    (TransportationDelivery AS t
+		    LEFT JOIN pay_bill p ON t.zf_id = p.zf_id
+		        AND t.platform_id = p.platform_id)
+		        LEFT JOIN
+		    driver d ON t.driver_id = d.id
+		        LEFT JOIN
+		    vehicle v ON t.vehicle_id = v.vehicle_id
+		    	JOIN 
+		    loginverify t2 on t2.platform_id = t.platform_id
+		    AND t2.driver_id = t.driver_id
+		    	JOIN
+		    COMPANY c ON t.company_id=c.seq_id
+		    	JOIN
+		    COMPANY c2 ON t2.company_id=c2.seq_id              
+		         <!-- LEFT JOIN
+		    COMPANY c ON t.company_id=c.seq_id -->
+		       LEFT JOIN
+		    goodsorder_to_pay_info gp2 on t.publish_id=gp2.publish_id
+		        JOIN
+		    goodsorderm g ON g.publish_id = t.publish_id
+		        
+		WHERE t.platform_id = #{platformId}
+		  and t.settle_status = '20'
+          and t.if_tax_transport = 'Y'
+          and p.owner_payapply_cancel_flag='1'
+		<if test="ownerPayapplyFlag!=null and ownerPayapplyFlag!=''">
+			and p.owner_payapply_flag=#{ownerPayapplyFlag}
+		</if>
+		<if test="ifPayment!=null and !ifPayment">
+			and IFNULL(g.if_payment, 'N') = 'N'
+		</if>
+		<if test="ifPayment!=null and ifPayment">
+			and IFNULL(g.if_payment, 'N') = 'Y'
+		</if>
+		<if test="ifCan!=null and ifCan">
+			and IFNULL(t.truck_loading_weight,0) &gt;0 and IFNULL(t.take_delivery_weight,0) &gt;0
+		</if>
+		<if test="ifCan!=null and !ifCan">
+			and (IFNULL(t.truck_loading_weight,0) &lt;=0 or IFNULL(t.take_delivery_weight,0) &lt;=0)
+		</if>
+		<if test='isAutoDisplay=="0"'>
+			and g.is_auto_display = '0'
+		</if>
+		<if test='isAutoDisplay=="1"'>
+			and g.is_auto_display = '1'
+		</if>
+		<if test="ifBrokerPeopleTollFlag!=null and ifBrokerPeopleTollFlag!=''">
+			and t.if_broker_people_toll_flag = #{ifBrokerPeopleTollFlag}
+		</if>
+		<if test="billSender!=null and billSender!=''">
+			and g.bill_sender like CONCAT('%',#{billSender},'%')
+		</if>
+		<if test="deliveryId!=null">
+			and t.delivery_id like CONCAT('%',#{deliveryId},'%')
+		</if>
+		<if test="transportationdeliveryId!=null">
+			and t.delivery_id = #{transportationdeliveryId}
+		</if>
+		<if test="payPublishId!=null">
+			and t.publish_id like CONCAT('%',#{payPublishId},'%')
+		</if>
+		<if test="accessFlag=='N'">
+			and (t.if_fd_judge is null or t.if_fd_judge='N') and (t.status='00' || t.status='90')
+		</if>
+		<if test="accessFlag=='Y'">
+			and t.if_fd_judge='Y' and (t.status='00' || t.status='90')
+		</if>
+		<if test="dependNum!=null and dependNum!=''">
+			and g.depend_num = #{dependNum}
+		</if>
+		<if test="settleflag=='10'">
+			and t.settle_amount = 0
+		</if>
+		<if test="settleflag=='20'">
+			and t.settle_amount &gt; 0
+		</if>
+		<if test="settleStatus=='10'">
+			and (t.settle_status = "10" or t.settle_status is null)
+		</if>
+		<if test="settleStatus=='20'">
+			and t.settle_status = "20" <!-- and p.owner_payapply_flag = "0" -->
+		</if>
+		<if test="name!=null and name!=''">
+			and d.name like CONCAT('%',#{name},'%')
+		</if>
+		<if test="vehicleNum!=null and vehicleNum!=''">
+			and v.vehicle_num like CONCAT('%',#{vehicleNum},'%')
+		</if>
+		<if test="ps!=null and ps!=''">
+			and g.ps like CONCAT('%',#{ps},'%')
+		</if>
+		<if test="transId!=null">
+			and t.trans_id = #{transId}
+		</if>
+		<if test="companyName!=null and companyName!=''">
+			and (select  company_name from Company a where a.platform_id = t.platform_id and a.seq_id = t.company_id)  like concat('%',#{companyName} ,'%')
+		</if>
+		<if test="invoiceNo!=null and invoiceNo!=''">
+			and i.invoice_no like CONCAT('%',#{invoiceNo},'%')
+		</if>
+		<if test="ifInvoice!=null and ifInvoice!=''">
+			and IFNULL(i.if_invoice,0)=#{ifInvoice}
+		</if>
+		<if test="publishId!=null">
+			and t.publish_id = #{publishId}
+		</if>	
+		<if test="pinDan=='1'">
+			and g.pin_dan_num is not null
+		</if>
+		<if test="pinDan=='2'">
+			and g.pin_dan_num is null
+		</if>	
+		<if test="ifPaid!=null and ifPaid!=''">
+			and IFNULL(p.status,'10') = #{ifPaid}
+		</if>
+		<if test="carriCompany!=null and carriCompany!=''">
+			and t.company_id IN (select t3.seq_id from Company t3 where t3.company_name like CONCAT('%', #{carriCompany},'%'))
+		</if>
+		<if test="earlyWarning=='Y'">
+			and t.create_date &lt;=DATE_SUB(now(),INTERVAL (select c.early_warning_days FROM company c where t.publish_company_id=c.seq_id) day)
+			AND t.status&gt;00 AND t.status&lt;90
+		</if>
+		<if test="earlyWarning=='N'">
+			and t.create_date &gt;=DATE_SUB(now(),INTERVAL (select c.early_warning_days FROM company c where t.publish_company_id=c.seq_id) day)
+			AND t.status&gt;00 AND t.status&lt;90
+		</if>
+		<if test="rqStart!=null">
+			and t.create_date &gt;= #{rqStart,jdbcType=TIMESTAMP}
+			<!-- and t.create_date &gt;= STR_TO_DATE(CONCAT(#{rqStart},':00'),'%Y-%m-%d %H:%i:%s') -->
+		</if>
+		<if test="rqEnd!=null">
+			and t.create_date &lt;= #{rqEnd,jdbcType=TIMESTAMP}
+			<!-- and t.create_date &lt;= STR_TO_DATE(CONCAT(#{rqEnd},':59'),'%Y-%m-%d %H:%i:%s') -->
+		</if>
+		<if test="receRqStart!=null">
+			and t.finish_time &gt;= #{receRqStart,jdbcType=TIMESTAMP}
+			<!-- and t.finish_time &gt;= STR_TO_DATE(CONCAT(#{receRqStart},':00'),'%Y-%m-%d %H:%i:%s') -->
+		</if>
+		<if test="receRqEnd!=null">
+			and t.finish_time &lt;= #{receRqEnd,jdbcType=TIMESTAMP}
+			<!-- and t.finish_time &lt;= STR_TO_DATE(CONCAT(#{receRqEnd},':59'),'%Y-%m-%d %H:%i:%s') -->
+		</if>
+		<if test="startPlate!=null and startPlate!=''">
+			and t.start_plate like CONCAT('%',#{startPlate},'%')
+		</if>
+		<if test="endPlate!=null and endPlate!=''">
+			and t.end_plate like CONCAT('%',#{endPlate},'%')
+		</if>
+		<if test="status!=null and status!=''">
+			and t.status = #{status}
+		</if>
+		<if test="fromType!=null and fromType!=''">
+			and g.from_type = #{fromType}
+		</if>
+		<if test="deFlag!=null and deFlag!=''">
+			and t.orther_flag = #{deFlag}
+		</if>
+		<if test="iffly!=null and iffly!=''">
+			and t.if_feidan = #{iffly}
+		</if>
+		<if test="sender!=null and sender!=''">
+			<!-- and g.sender in (${sender}) -->
+			and g.sender like CONCAT('%',#{sender},'%')
+		</if>
+		<if test="prodDesc!=null and prodDesc!=''">
+			and (select t1.prod_desc from TransportationM t1 where t1.trans_id = t.trans_id) like CONCAT('%',#{prodDesc},'%')
+		</if>
+		<if test="dsIfSettle!=null and dsIfSettle!=''">
+			and g.ds_if_settle = #{dsIfSettle}
+		</if>
+		<if test="ifTaxTransport!=null and ifTaxTransport">
+			and t.if_tax_transport='Y'
+		</if>
+		<if test="ifTaxTransport!=null and !ifTaxTransport">
+			and t.if_tax_transport='N'
+		</if>
+		<if test="ifSaveImage=='1'">
+			and t.comfirm_pic1_local!=''
+		</if>
+		<if test="ifSaveImage=='0'">
+			and IFNULL(t.comfirm_pic1_local,0)=0
+		</if>
+		<if test="goodTypeDesc!=null and goodTypeDesc!=''">
+			and t.good_type_desc like CONCAT('%', #{goodTypeDesc},'%')
+		</if>
+		<if test='settlePage=="Y"'>
+			order by t.finish_time desc
+		</if>
+		<if test='settlePage!="Y"'>
+			order by t.CREATE_DATE desc
+		</if>
+			
+	</select>
+	
+	<select id="exportSettleInfolist" resultType="com.brcc.business.transportbill.vo.TransportationDeliveryVo" parameterType="java.util.Map">
+		SELECT 
+		    t.bill_sender AS 'billSender',
+		    t.bill_sender_mobile AS 'billSenderMobile',
+		    t.receiver AS 'receiver',
+		    t.receiver_mobile AS 'receiverMobile',
+		    t.zcSure_date AS 'zcSureDate',
+		    t.js_remark AS jsRemark,
+		    t.delivery_id AS 'deliveryId',
+		    t.delivery_num AS 'deliveryNum',
+		    t.publish_id AS 'publishId',
+		    t.publish_num AS publishNum,
+		    t.trans_id AS transId,
+		    t.trans_num AS transNum,
+		    d.id_num AS idNum,
+		    t.weight,
+		    t.price,
+		    t.amount,
+		    p.pay_amount AS payAmount,
+		    t.create_date AS createDate,
+		    t.company_id as companyId,
+		    (SELECT 
+		            t1.company_name
+		        FROM
+		            Company t1
+		        WHERE
+		            t1.seq_id = t.company_id) AS companyName,
+		    t.start_plate AS 'startPlate',
+		    t.end_plate AS 'endPlate',
+		    t.driver_id AS 'driverId',
+		    t.comfirm_pic_local AS 'comfirmPicLocal',
+		    d.`name` AS name,
+		    (SELECT 
+		            t2.company_id
+		        FROM
+		            loginverify t2
+		        WHERE
+		            t2.platform_id = t.platform_id
+		                AND t2.driver_id = t.driver_id) AS driverCompanyId,
+		    t.vehicle_id AS 'vehicleId',
+		    v.vehicle_num AS vehicleNum,
+		    t.STATUS as status,
+		    d.phone AS phone,
+		    IF(t.STATUS = '10',
+		        '待取单',
+		        IF(t.STATUS = '20',
+		            '待装货',
+		            IF(t.STATUS = '30',
+		                '待收货',
+		                IF(t.STATUS = '90',
+		                    '已完成',
+		                    IF(t.STATUS = '00',
+		                        '已作废',
+		                        '待取单'))))) AS statusDesc,
+		    t.settle_weight AS 'settleWeight',
+		    t.settle_amount AS 'settleAmount',
+		    t.truck_loading_weight AS 'truckLoadingWeight',
+		    t.take_delivery_weight AS 'takeDeliveryWeight',
+		    t.operate_type AS operateType,
+		    ROUND((t.truck_loading_weight - t.take_delivery_weight),
+		            2) AS 'deductLossWeight',
+		    ROUND(FORMAT((t.truck_loading_weight - t.take_delivery_weight),
+		                4) / t.truck_loading_weight,
+		            4) AS 'deductLossRatio',
+		    t.settle_price AS 'settlePrice',
+		    t.price AS 'price',
+		    t.orther_flag AS 'ortherFlag',
+		    t.good_type AS 'goodType',
+		    t.good_type_desc AS 'goodTypeDesc',
+		    t.if_fd_judge AS 'ifFdJudge',
+		    IF(t.if_fd_judge = 'Y',
+		        '已评价',
+		        '未评价') AS accFlag,
+		    IF(t.orther_flag = '1',
+		        '已处理',
+		        '未处理') AS ortherFlagName,
+		    IF(t.if_feidan = 'Y', '是', '不是') AS iffly,
+		    tm.prod_desc AS prodDesc,
+		    g.from_type AS fromType,
+		    g.ps AS ps,
+		    g.depend_num AS dependNum,
+		    t.publish_company_id as publishCompanyId,
+		    (SELECT 
+		            t1.company_name
+		        FROM
+		            Company t1
+		        WHERE
+		            t1.seq_id = t.publish_company_id) AS consignorName,
+		    (SELECT 
+		            t1.user_name
+		        FROM
+		            loginverify t1
+		        WHERE
+		            t1.user_id = t.update_person) AS updatePersonName,
+		    g.pin_dan_num AS pinDanNum,
+		    t.update_date AS updateDate,
+		    IF(t.settle_status = '10',
+		        '未计算',
+		        IF(t.settle_status = '20',
+		            '已计算',
+		            '未计算')) AS settleStatusDesc,
+		    t.settle_status AS 'settleStatus',
+		    t.zf_id AS 'zfId',
+		    t.zf_num AS 'zfNum',
+		    g.loss_type AS lossType,
+		    g.loss_ratio AS lossRatio,
+		    g.loss_weight AS lossWeight,
+		    g.good_price AS goodPrice,
+		    g.prod_desc AS prodDesc,
+		    g.sender AS sender,
+		    g.js_type AS jsType,
+		    (SELECT 
+		            c.early_warning_days
+		        FROM
+		            company c
+		        WHERE
+		            t.publish_company_id = c.seq_id) AS earlyWarningDays,
+		    IF(t.finish_time IS NULL
+		            OR t.finish_time = '',
+		        t.shSure_date,
+		        t.finish_time) AS finishTime,
+		    t.remark,
+		    p.STATUS AS payStatus,
+		    IF((p.`status` = '10'),
+		        '待支付',
+		        IF((p.`status` = '20'),
+		            '已支付',
+		            IF((p.`status` = '00'),
+		                '已撤销',
+		                IF((p.`status` = '30'),
+		                    '处理中',
+		                    '待支付')))) AS payStatusDesc,
+		    p.pay_date AS payDate,
+		    IF(p.rece_bank_type = '1',
+		        '发单人维护账号',
+		        IF(p.rece_bank_type = '0',
+		            '承运人银行账号',
+		            '')) AS receBankTypeDesc,
+		    p.rece_bank_type AS 'receBankType',
+		    g.ds_if_settle AS 'dsIfSettle',
+		    IF(g.ds_if_settle = 0, '否', '是') AS 'dsIfSettleDesc',
+		    (SELECT 
+		            IFNULL(l.user_type, 'GS')
+		        FROM
+		            loginverify l
+		        WHERE
+		            l.company_id = t.company_id
+		                AND l.driver_id = t.driver_id
+		                AND l.platform_id = t.platform_id) AS 'userType',
+		    t.if_tax_transport AS 'ifTaxTransport',
+		    IF(IFNULL(t.if_tax_transport, 'N') = 'Y',
+		        '是',
+		        '否') AS 'ifTaxTransportDesc',
+		    IF(t.if_tax_transport = 'Y',
+		        ROUND(t.price_tax, 2),
+		        '') AS 'priceTax',
+		    IF(t.if_tax_transport = 'Y',
+		        ROUND(ROUND(t.price_tax, 2) * t.weight, 2),
+		        '') AS 'taxAmount',
+		    IF(t.if_tax_transport = 'Y',
+		        t.standard_tax,
+		        '') AS 'standardTax',
+		    IF(t.if_tax_transport = 'Y',
+		        (SELECT 
+		                t1.company_name
+		            FROM
+		                company t1
+		            WHERE
+		                t1.seq_id = t.carry_company_id),
+		        '') AS carryCompanyName,
+		    IF(t.if_tax_transport = 'Y',
+		        (SELECT 
+		                t1.contact_mobile
+		            FROM
+		                company t1
+		            WHERE
+		                t1.seq_id = t.carry_company_id),
+		        '') AS carryContactMobile,
+		    t.if_upload_receipt_flag AS 'if_uploadReceiptFlag',
+		    t.comfirm_pic1_local AS 'comfirmPic1Local',
+		    IFNULL(j.dz_jk_cancel, 0) AS 'dzJkCancel',
+		    IF(i.if_invoice = '2',
+		        '已开票',
+		        IF(i.if_invoice = '1',
+		            '开票中',
+		            '未开票')) AS 'ifInvoice',
+		    i.invoice_no AS 'invoiceNo',
+		    pc.rece_company_id AS 'receCompanyId',
+		    pc.rece_company_name AS 'receCompanyName',
+		    pc.pay_from_type AS 'payFromType',
+		    IF(pc.pay_from_type = '2',
+		        '经纪人结算',
+		        '承运人结算') AS 'payFromTypeDesc',
+		    pc.rece_bank_name AS 'receBankName',
+		    pc.rece_bank_num AS 'receBankNum',
+		    pc.rece_bank_owner AS 'receBankOwner',
+		    pc.pay_amount AS 'payDriverAmount',
+			t.pound_num AS 'poundNum',
+			t.pound_location AS 'poundLocation'
+		FROM
+		    (TransportationDelivery AS t
+		    LEFT JOIN pay_bill p ON t.zf_id = p.zf_id
+		        AND t.platform_id = p.platform_id)
+		        LEFT JOIN
+		    driver d ON t.driver_id = d.id
+		        LEFT JOIN
+		    vehicle v ON t.vehicle_id = v.vehicle_id
+		        JOIN
+		    goodsorderm g ON g.publish_id = t.publish_id
+		        JOIN
+		    TransportationM tm ON t.trans_id = tm.trans_id
+		        LEFT JOIN
+		    goodsordermjksetplat j ON (j.tms_fd_company_id = t.publish_company_id
+		        AND j.tms_from_type = g.from_type
+		        AND j.tms_platform_id = t.platform_id
+		        AND j.tms_from_type = 'JK_U8'
+		        AND j.ec_plat_name = g.from_plat_name)
+		        LEFT JOIN
+		    invoicedetail i ON (t.delivery_id = i.delivery_id
+		        AND i.invoice_title_id = #{companyId}
+		        AND i.if_invoice &gt; 0)
+		        LEFT JOIN
+		    pay_bill_child pc ON (pc.zf_id = p.zf_id
+		        AND pc.platform_id = p.platform_id)
+		WHERE t.platform_id = #{platformId}
+		  and t.sign_status = '20'
+		<!-- 在“已计算”列表显示出所有的已计算单据，即除了显示未做付款指令的运费计算单外，还要显示出已做付款指令及付款完成的单子。 -->
+		<!-- and ifnull(p.owner_payapply_flag, '0') = "0" -->
+		<!-- 引用公用查询 -->
+		<include refid="common.filterQuery" />
+		<include refid="common.commonQuery2" />
+		<!-- 增加回单上传的图片 -->
+		<if test='comfirmPic1Local =="1"'>
+			and t.comfirm_pic1_local != '' 
+		</if>
+		<if test='comfirmPic1Local =="0"'>
+			and t.comfirm_pic1_local = ''
+		</if>
+		<!-- 增加取单地 -->
+		<if test="getOrderPlate!=null and getOrderPlate!=''">
+			and t.get_order_plate like CONCAT('%',#{getOrderPlate},'%')
+		</if>
+		<if test="ifCan=='Y'">
+			and ifnull(t.truck_loading_weight,0) &gt;0 and ifnull(t.take_delivery_weight,0) &gt;0
+		</if>
+		<if test="ifCan=='N'">
+			(ifnull(t.truck_loading_weight,0) &lt;=0 or ifnull(t.take_delivery_weight,0) &lt;=0)
+	    </if>
+		<if test="isAutoDisplay=='0'">
+			and g.is_auto_display = '0'
+		</if>
+		<if test="isAutoDisplay=='1'">
+			and g.is_auto_display = '1'
+	    </if>
+		<if test="deliveryId!=null">
+			and t.delivery_id like CONCAT('%',#{deliveryId},'%')
+	    </if>
+		<if test="payPublishId!=null">
+			and t.publish_id like CONCAT('%',#{payPublishId},'%')
+	    </if>
+	    
+	    <if test="accessFlag=='N'">
+			and (t.if_fd_judge is null or t.if_fd_judge='N') and (t.status='00' || t.status='90')
+		</if>
+		<if test="accessFlag=='Y'">
+			and t.if_fd_judge='Y' and (t.status='00' || t.status='90')
+	    </if>
+	    <if test="dependNum!=null and dependNum!=''">
+			and t.publish_id in (select t1.publish_id from GoodsOrderM t1 where t1.depend_num = #{dependNum})
+	    </if>
+	    <if test="settleflag=='10'">
+			and t.settle_amount = 0
+		</if>
+		<if test="settleflag=='20'">
+			and t.settle_amount &gt; 0
+	    </if>
+	    <if test="settleStatus=='10'">
+			and (t.settle_status = "10" or t.settle_status is null)
+		</if>
+		<if test="settleStatus=='20'">
+			and t.settle_status = "20"
+	    </if>
+	    <if test="name!=null and name!=''">
+			and (select t1.`name` from Driver t1 where t1.id = t.driver_id) like CONCAT('%',#{name},'%')
+	    </if>
+	    <if test="vehicleNum!=null and vehicleNum!=''">
+			and v.vehicle_num like CONCAT('%',#{vehicleNum},'%')
+	    </if>
+	    <if test="ps!=null and ps!=''">
+			and (select t1.ps from goodsorderm t1 where t.publish_id = t1.publish_id) like CONCAT('%',#{ps},'%')
+	    </if>
+	    <if test="transId!=null">
+			and t.trans_id = #{transId}
+	    </if>
+	    <if test="companyName!=null and companyName!=''">
+			and (select company_name from Company a where a.platform_id = t.platform_id and a.seq_id = t.company_id) like concat('%', #{companyName} ,'%')
+	    </if>
+	    <if test="invoiceNo!=null and invoiceNo!=''">
+			and i.invoice_no like CONCAT('%',#{invoiceNo},'%')
+	    </if>
+	    <if test="ifInvoice!=null and ifInvoice!=''">
+			and ifnull(i.if_invoice,0)=#{ifInvoice}
+	    </if>
+	    <if test="publishId!=null">
+			and t.publish_id = #{publishId}
+	    </if>
+	    <if test="pinDan=='1'">
+			and exists(SELECT 1 FROM goodsorderm t1 WHERE t.publish_id = t1.publish_id and t1.pin_dan_num is not null)
+		</if>
+		<if test="pinDan=='2'">
+			and exists(SELECT 1 FROM goodsorderm t1 WHERE t.publish_id = t1.publish_id and t1.pin_dan_num is null)
+	    </if>
+	    <if test="ifPaid!=null and ifPaid!=''">
+			and ifnull(p.status,'10') = #{ifPaid}
+	    </if>
+	    <if test="carriCompany!=null and carriCompany!=''">
+			and t.company_id IN (select t3.seq_id from Company t3 where t3.company_name like CONCAT('%',#{carriCompany},'%'))
+	    </if>
+		<if test="earlyWarning=='Y'">
+			and t.create_date &lt;=DATE_SUB(now(),INTERVAL (select c.early_warning_days FROM company c where t.publish_company_id=c.seq_id) day) 
+				AND t.status&gt;00 AND t.status&lt;90
+		</if>
+		<!-- 预警筛选 -->
+		<if test="earlyWarning=='N'">
+			and t.create_date &gt;=DATE_SUB(now(),INTERVAL (select c.early_warning_days FROM company c where t.publish_company_id=c.seq_id) day)
+				AND t.status&gt;00 AND t.status&lt;90
+	    </if>
+	    
+	    <if test="rqStart!=null">
+			and t.create_date &gt;= #{rqStart,jdbcType=TIMESTAMP}
+			<!-- and t.create_date &gt;= STR_TO_DATE(CONCAT(#{rqStart},':00'),'%Y-%m-%d %H:%i:%s') -->
+		</if>
+		<if test="rqEnd!=null">
+			and t.create_date &lt;= #{rqEnd,jdbcType=TIMESTAMP}
+			<!-- and t.create_date &lt;= STR_TO_DATE(CONCAT(#{rqEnd},':59'),'%Y-%m-%d %H:%i:%s') -->
+		</if>
+		<if test="receRqStart!=null">
+			and t.finish_time &gt;= #{receRqStart,jdbcType=TIMESTAMP}
+			<!-- and t.finish_time &gt;= STR_TO_DATE(CONCAT(#{receRqStart},':00'),'%Y-%m-%d %H:%i:%s') -->
+		</if>
+		<if test="receRqEnd!=null">
+			and t.finish_time &lt;= #{receRqEnd,jdbcType=TIMESTAMP}
+			<!-- and t.finish_time &lt;= STR_TO_DATE(CONCAT(#{receRqEnd},':59'),'%Y-%m-%d %H:%i:%s') -->
+		</if>
+		<if test="startPlate!=null and startPlate!=''">
+			and t.start_plate like CONCAT('%',#{startPlate},'%')
+		</if>
+		<if test="endPlate!=null and endPlate!=''">
+			and t.end_plate like CONCAT('%',#{endPlate},'%')
+		</if>
+		<if test="status!=null and status!=''">
+			and t.status = #{status}
+		</if>
+		<if test="fromType!=null and fromType!=''">
+			and exists(select 1 from GoodSorderm g where g.publish_id = t.publish_id and g.from_type = #{fromType})
+		</if>
+		<if test="deFlag!=null and deFlag!=''">
+			and t.orther_flag = #{deFlag}
+		</if>
+		<if test="iffly!=null and iffly!=''">
+			and t.if_feidan = #{iffly}
+		</if>
+		<!-- 送货人 -->
+		<if test="sender!=null and sender!=''">
+			and (select g.sender from goodsorderm g where t.publish_id = g.publish_id) like CONCAT ('%',#{sender},'%')
+		</if>
+		<if test="prodDesc!=null and prodDesc!=''">
+			and (select t1.prod_desc from TransportationM t1 where t1.trans_id = t.trans_id) like CONCAT('%',#{prodDesc},'%')
+		</if>
+		<if test="dsIfSettle!=null and dsIfSettle!=''">
+			and g.ds_if_settle=#{dsIfSettle}
+		</if>
+		<!--<if test="ifTaxTransport!=null and ifTaxTransport!=''">
+			and t.if_tax_transport=#{ifTaxTransport}
+		</if>-->
+		<if test="ifTaxTransport!=null and ifTaxTransport=='true'">
+			and t.if_tax_transport='Y'
+		</if>
+		<if test="ifTaxTransport!=null and ifTaxTransport=='false'">
+			and t.if_tax_transport='N'
+		</if>
+		<if test="payStatus!=null and payStatus!=''">
+			and p.status=#{payStatus}
+		</if>
+		<if test="ownerPayApplyFlag!=null and ownerPayApplyFlag!=''">
+			and p.owner_payapply_flag=#{ownerPayApplyFlag}
+		</if>
+		<if test="ifSaveImage=='1'">
+			and t.comfirm_pic1_local!=''
+		</if>
+		<if test="ifSaveImage=='0'">
+			and IFNULL(t.comfirm_pic1_local,0)=0
+	    </if>
+	    <if test="settlePage=='Y'">
+			order by t.finish_time desc
+		</if>
+		<if test="settlePage!='Y'">
+			order by t.CREATE_DATE desc
+	    </if>
+		
+	</select>
+	
+	<select id="queryOilRatioInfo" resultType="com.brcc.business.transportbill.vo.TransportationDeliveryVo" parameterType="java.util.Map">
+		SELECT 
+		    t.oil_ratio as oilRatio,
+		    t.oil_flag as oilFlag,
+		    t.oil_amount as oilAmount
+		FROM
+		    oilcompanyconfig t
+		WHERE t.fk_company_id = #{companyId}
+		  AND t.status = '20'
+		  and t.platform_id = #{platformId}
+		LIMIT 0 , 1
+	</select>
+	
+	<select id="queryDefaultPayCompany" resultType="com.brcc.business.transportbill.vo.TransportationDeliveryVo" parameterType="java.util.Map">
+		SELECT 
+		    t.seq_id AS 'payCompanyId',
+		    t.company_name AS 'payCompanyName'
+		FROM
+		    Company t
+		WHERE
+		    t.platform_id = #{platformId}
+		        AND t.if_pay = 'Y'
+		        AND t.owner_fd_company_id = #{companyId}
+		ORDER BY IF(t.if_default_pay = 'Y', 1, 2) ASC
+		LIMIT 0 , 1
+	</select>
+	
+	<select id="queryPayErase" resultType="com.brcc.business.transportbill.vo.TransportationDeliveryVo" parameterType="java.util.Map">
+		SELECT 
+		    t.erase_min_amount AS 'eraseMinAmount',
+		    t.erase_type AS 'eraseType'
+		FROM
+		    pay_erase t
+		WHERE
+		    t.platform_id = #{platformId}
+		    AND t.publish_company_id = #{companyId}
+		    and t.erase_status = '20'
+		    limit 1
+	</select>
+	
+	<select id="queryDumpTruckCharge" resultType="com.brcc.business.transportbill.vo.TransportationDeliveryVo" parameterType="java.util.Map">
+		SELECT 
+		    c.dump_truck_charge AS 'dumpTruckCharge'
+		FROM
+		    apptms.transportationdelivery t,
+		    apptms.vehicle v,
+		    apptms.owner_dump_truck_charge c
+		WHERE
+		    t.vehicle_id = v.vehicle_id
+		        AND t.publish_company_id = c.publish_company_id
+		        AND v.dump_truck_flag = c.dump_truck_flag
+		        AND c.charge_status = '20'
+		        AND t.platform_id = c.platform_id
+		        AND t.platform_id = #{platformId}
+		        AND t.delivery_id = #{transportationdeliveryId}
+	</select>
+	
+	<select id="getSeqNumPro" parameterType="java.util.HashMap" statementType="CALLABLE" resultType="java.util.Map">
+		{call generate_docu_no(
+			#{typeId,jdbcType=INTEGER,mode=IN},
+			#{seqNum,jdbcType=VARCHAR,mode=OUT}
+		)}
+  	</select>
+  	
+  	<select id="queryPublisherBankInfo" resultType="com.brcc.business.transportbill.vo.TransportationDeliveryVo" parameterType="java.util.Map">
+		SELECT 
+		    t.bank_name as bankName, 
+		    t.bank_num as bankNum, 
+		    t.bank_card_owner as "bankOwner",
+		    t.mobile,
+		    '' as province,
+		    '' as city,
+		    '' as "subbranchName",
+		    '' as "linkNum",
+		    'C' as "accountType",
+		    '' as bankOwnerNum,
+		    0 as companyOwnerBankId,
+		    0 as companyOwnerId,
+		    'N' as authorityFlag
+		FROM
+		    goodsorder_to_pay_info t
+		WHERE t.publish_id = #{publishId}
+		and t.platform_id = #{platformId}
+	</select>
+	
+	<select id="queryCarrierBankInfo" resultType="com.brcc.business.transportbill.vo.TransportationDeliveryVo" parameterType="java.util.Map">
+		SELECT 
+		    t.bank_name as bankName, 
+		    t.bank_num as bankNum, 
+		    t.bank_owner as bankOwner, 
+		    t.contact_mobile as "mobile",
+		    t.bank_province_city as province,
+		    t.bank_city as city,
+		    t.bank_ck_name as "subbranchName",
+		    t.bank_ck_code as "linkNum",
+		    if(t.bank_type='0', 'C', if(t.bank_type='1', 'B', 'C')) as "accountType"
+		    
+		FROM
+		    company t
+		WHERE t.seq_id = #{companyId}
+		and t.platform_id = #{platformId}
+	</select>
+
+	<select id="queryReceBankInfo" resultType="com.brcc.business.transportbill.vo.TransportationDeliveryVo" parameterType="java.util.Map">
+		SELECT
+			t.bank_name AS bankName,
+			t.bank_num AS bankNum,
+			t.bank_owner AS bankOwner,
+			t.bank_branch_province AS province,
+			t.bank_branch_city AS city,
+			t.bank_branch_name AS subbranchName,
+			t.bank_branch_code AS linkNum,
+		    IF (t.bank_type = '0', 'C',IF (t.bank_type = '1', 'B', 'C')) AS accountType,
+		    t.bank_owner_num as bankOwnerNum,
+		    t.company_owner_bank_id as companyOwnerBankId,
+		    t.company_owner_id as companyOwnerId,
+		    t.authority_flag as authorityFlag
+		FROM
+			company_owner_bank t
+		WHERE
+			t.company_id = #{companyId}
+		AND t.default_pay_flag = 'Y'
+	</select>
+	
+	<select id="queryFirstVatFlowInfo" resultType="com.brcc.business.transportbill.vo.TransportationDeliveryVo" parameterType="java.util.Map">
+    	  SELECT 
+			    t.standard_tax as 'standardTax',
+			    t.price_tax as 'priceTax',
+			    t.if_tax_transport as 'ifTaxTransport',
+			    t.vat_flow_master_id as 'vatFlowMasterId',
+			    d.vat_rate_chose as 'vatRateChose',
+			    d.vat_standard_rate as 'vatStandardRate',
+			    d.vat_policy_rate as 'vatPolicyRate',
+			    d.vat_acc_type as 'vatAccType'
+			FROM
+			    apptms.transportationdelivery t
+			    left join vatflowdetail d on (t.vat_flow_master_id = d.vat_flow_master_id and d.if_begin = 'Y')
+			WHERE
+			    t.delivery_id = #{deliveryId}
+    </select>
+    
+    <select id="queryProviderBankInfo" resultType="com.brcc.business.transportbill.vo.TransportationDeliveryVo" parameterType="java.util.Map">
+   	  SELECT 
+		    t.delivery_id AS deliveryId,
+		    t.delivery_num AS deliveryNum,
+		    t.publish_id AS publishId,
+		    t.publish_num AS publishNum,
+		    t.trans_id AS transId,
+		    t.trans_num AS transNum,
+		    IF(b.gojk_bank_type = 'S', 'C', 'B') AS goodsBankType,
+		    b.gojk_bank_name AS goodsBankName,
+		    b.gojk_bank_no AS goodsBankNo,
+		    b.gojk_bank_user_name AS goodsBankOwner,
+		    b.gojk_bank_province AS goodsBankProvince,
+		    b.gojk_bank_city AS goodsBankCity,
+		    b.gojk_bank_sub_name AS goodsBankSubName,
+		    b.gojk_bank_sub_no AS goodsBankSubNo
+		FROM
+		    transportationdelivery t,
+		    goodsorderm g,
+		    goodsordermjk_bank_info b
+		WHERE
+		    t.delivery_id = #{deliveryId}
+		        AND t.platform_id = #{platformId}
+		        AND t.publish_id = g.publish_id
+		        AND g.import_id = b.import_id
+		        AND g.if_payment = 'Y'
+		        AND g.from_type = 'JK_U8'
+   </select>
+   
+   <select id="checkIfSamePay" resultType="com.brcc.business.transportbill.vo.TransportationDeliveryVo" parameterType="java.util.Map">
+		SELECT 
+			t.delivery_id as "deliveryId" ,
+			v.vehicle_num as "vehicleNum",
+			(select c.company_name from company c where c.seq_id = t.publish_company_id) as "publishCompanyName",
+			d.name as "driverName"
+			from transportationdelivery  t,vehicle v,driver d
+		 where 1=1
+			AND  t.platform_id = #{platformId}
+			and  t.driver_id = #{driverId}
+			and  t.driver_id = d.id
+		    and t.publish_id = #{publishId}
+		    and t.status ='90'
+		    and t.vehicle_id = #{vehicleId}
+		    and t.vehicle_id = v.vehicle_id
+		    and t.take_delivery_weight = #{takeDeliveryWeight}
+		    and t.truck_loading_weight = #{truckLoadingWeight}
+		    and t.create_date &gt;= DATE_SUB(now(),INTERVAL 10 DAY)
+		    and t.delivery_id != #{deliveryId}
+	</select>
+	
+	<select id="queryTransPriceAvg" resultType="com.brcc.business.transportbill.vo.TransportationDeliveryVo" parameterType="java.util.Map">
+		SELECT 
+		    IFNULL(ROUND(AVG(t.price), 2), 0) 		AS avgPrice,
+		    IFNULL(ROUND(AVG(t.price) * 1.2, 2), 0) AS maxPrice,
+		    IFNULL(ROUND(AVG(t.price) * 0.8, 2), 0) AS minPrice
+		FROM
+		    goodsorderm t
+		WHERE t.platform_id = #{platformId}
+		  AND CONCAT(IFNULL(t.start_plate, ''),
+		            IFNULL(t.end_plate, '')) = (SELECT 
+		            CONCAT(IFNULL(t4.start_plate, ''),
+		                        IFNULL(t4.end_plate, ''))
+		        FROM
+		            apptms.transportationdelivery t3,
+		            goodsorderm t4
+		        WHERE
+		            	t3.publish_id = t4.publish_id
+		                AND t3.platform_id = t4.platform_id
+		                AND t3.delivery_id = #{deliveryId})
+		        AND t.create_date &gt;= DATE_SUB(NOW(), INTERVAL 31 DAY)
+		        AND t.status != '00'
+		        AND t.company_id = #{publishCompanyId}
+	</select>
+	
+	<!--运费计算合计  -->
+	<select id="listDataSum" resultType="com.brcc.business.transportbill.vo.TransportationDeliveryVo" parameterType="java.util.Map">
+			
+		SELECT
+			IFNULL(CAST(sum(p.pay_amount) AS DECIMAL (12, 2)),0) AS payAmountSum,
+			IFNULL(CAST(sum(t.settle_weight) AS DECIMAL (12, 2)),0) AS settleWeightSum,
+			IFNULL(CAST(sum(t.truck_loading_weight) AS DECIMAL (12, 2)),0) AS loadWeightSum,
+			IFNULL(CAST(sum(t.take_delivery_weight) AS DECIMAL (12, 2)),0) AS deliveryWeightSum
+		FROM
+		    (TransportationDelivery AS t
+		    LEFT JOIN pay_bill p ON t.zf_id = p.zf_id
+		        AND t.platform_id = p.platform_id)
+		        LEFT JOIN
+		    driver d ON t.driver_id = d.id
+		        LEFT JOIN
+		    vehicle v ON t.vehicle_id = v.vehicle_id
+		    	JOIN 
+		    loginverify t2 on t2.platform_id = t.platform_id
+		    AND t2.driver_id = t.driver_id
+		    	JOIN
+		    COMPANY c ON t.company_id=c.seq_id
+		    	JOIN
+		    COMPANY c2 ON t2.company_id=c2.seq_id              
+		         <!-- LEFT JOIN
+		    COMPANY c ON t.company_id=c.seq_id -->
+		       LEFT JOIN
+		    goodsorder_to_pay_info gp2 on t.publish_id=gp2.publish_id
+		        JOIN
+		    goodsorderm g ON g.publish_id = t.publish_id
+		        
+		WHERE t.platform_id = #{platformId}
+		  and t.sign_status = '20'
+		<!-- 在“已计算”列表显示出所有的已计算单据，即除了显示未做付款指令的运费计算单外，还要显示出已做付款指令及付款完成的单子。 -->
+		<!-- and ifnull(p.owner_payapply_flag, '0') = "0" -->
+		<include refid="common.filterQuery" />
+		<include refid="common.commonQuery2" />
+		<if test="ifPayment!=null and !ifPayment">
+			and IFNULL(g.if_payment, 'N') = 'N'
+		</if>
+		<if test="ifPayment!=null and ifPayment">
+			and IFNULL(g.if_payment, 'N') = 'Y'
+		</if>
+		<!-- 增加回单上传的图片 -->
+		<if test='comfirmPic1Local =="1"'>
+			and t.comfirm_pic1_local != '' 
+		</if>
+		<if test='comfirmPic1Local =="0"'>
+			and t.comfirm_pic1_local = ''
+		</if>
+		<!-- 增加取单地 -->
+		<if test="getOrderPlate!=null and getOrderPlate!=''">
+			and t.get_order_plate like CONCAT('%',#{getOrderPlate},'%')
+		</if>
+		<if test="ifCan!=null and ifCan">
+			and IFNULL(t.truck_loading_weight,0) &gt;0 and IFNULL(t.take_delivery_weight,0) &gt;0
+		</if>
+		<if test="ifCan!=null and !ifCan">
+			and (IFNULL(t.truck_loading_weight,0) &lt;=0 or IFNULL(t.take_delivery_weight,0) &lt;=0)
+		</if>
+		<if test='isAutoDisplay=="0"'>
+			and g.is_auto_display = '0'
+		</if>
+		<if test='isAutoDisplay=="1"'>
+			and g.is_auto_display = '1'
+		</if>
+		<if test="ifBrokerPeopleTollFlag!=null and ifBrokerPeopleTollFlag!=''">
+			and t.if_broker_people_toll_flag = #{ifBrokerPeopleTollFlag}
+		</if>
+		<if test="billSender!=null and billSender!=''">
+			and g.bill_sender like CONCAT('%',#{billSender},'%')
+		</if>
+		<if test="deliveryId!=null">
+			and t.delivery_id like CONCAT('%',#{deliveryId},'%')
+		</if>
+		<if test="transportationdeliveryId!=null">
+			and t.delivery_id = #{transportationdeliveryId}
+		</if>
+		<if test="payPublishId!=null">
+			and t.publish_id like CONCAT('%',#{payPublishId},'%')
+		</if>
+		<if test="accessFlag=='N'">
+			and (t.if_fd_judge is null or t.if_fd_judge='N') and (t.status='00' || t.status='90')
+		</if>
+		<if test="accessFlag=='Y'">
+			and t.if_fd_judge='Y' and (t.status='00' || t.status='90')
+		</if>
+		<if test="dependNum!=null and dependNum!=''">
+			and g.depend_num = #{dependNum}
+		</if>
+		<if test="settleflag=='10'">
+			and t.settle_amount = 0
+		</if>
+		<if test="settleflag=='20'">
+			and t.settle_amount &gt; 0
+		</if>
+		<if test="settleStatus=='10'">
+			and (t.settle_status = "10" or t.settle_status is null)
+		</if>
+		<if test="settleStatus=='20'">
+			and t.settle_status = "20" <!-- and p.owner_payapply_flag = "0" -->
+		</if>
+		<if test="name!=null and name!=''">
+			and d.name like CONCAT('%',#{name},'%')
+		</if>
+		<if test="vehicleNum!=null and vehicleNum!=''">
+			and v.vehicle_num like CONCAT('%',#{vehicleNum},'%')
+		</if>
+		<if test="ps!=null and ps!=''">
+			and g.ps like CONCAT('%',#{ps},'%')
+		</if>
+		<if test="transId!=null">
+			and t.trans_id = #{transId}
+		</if>
+		<if test="companyName!=null and companyName!=''">
+			and (select  company_name from Company a where a.platform_id = t.platform_id and a.seq_id = t.company_id)  like concat('%',#{companyName} ,'%')
+		</if>
+		<if test="invoiceNo!=null and invoiceNo!=''">
+			and i.invoice_no like CONCAT('%',#{invoiceNo},'%')
+		</if>
+		<if test="ifInvoice!=null and ifInvoice!=''">
+			and IFNULL(i.if_invoice,0)=#{ifInvoice}
+		</if>
+		<if test="publishId!=null">
+			and t.publish_id = #{publishId}
+		</if>	
+		<if test="pinDan=='1'">
+			and g.pin_dan_num is not null
+		</if>
+		<if test="pinDan=='2'">
+			and g.pin_dan_num is null
+		</if>	
+		<if test="ifPaid!=null and ifPaid!=''">
+			and IFNULL(p.status,'10') = #{ifPaid}
+		</if>
+		<if test="carriCompany!=null and carriCompany!=''">
+			and t.company_id IN (select t3.seq_id from Company t3 where t3.company_name like CONCAT('%', #{carriCompany},'%'))
+		</if>
+		<if test="earlyWarning=='Y'">
+			and t.create_date &lt;=DATE_SUB(now(),INTERVAL (select c.early_warning_days FROM company c where t.publish_company_id=c.seq_id) day)
+			AND t.status&gt;00 AND t.status&lt;90
+		</if>
+		<if test="earlyWarning=='N'">
+			and t.create_date &gt;=DATE_SUB(now(),INTERVAL (select c.early_warning_days FROM company c where t.publish_company_id=c.seq_id) day)
+			AND t.status&gt;00 AND t.status&lt;90
+		</if>
+		<if test="rqStart!=null">
+			and t.create_date &gt;= #{rqStart,jdbcType=TIMESTAMP}
+			<!-- and t.create_date &gt;= STR_TO_DATE(CONCAT(#{rqStart},':00'),'%Y-%m-%d %H:%i:%s') -->
+		</if>
+		<if test="rqEnd!=null">
+			and t.create_date &lt;= #{rqEnd,jdbcType=TIMESTAMP}
+			<!-- and t.create_date &lt;= STR_TO_DATE(CONCAT(#{rqEnd},':59'),'%Y-%m-%d %H:%i:%s') -->
+		</if>
+		<if test="receRqStart!=null">
+			and t.finish_time &gt;= #{receRqStart,jdbcType=TIMESTAMP}
+			<!-- and t.finish_time &gt;= STR_TO_DATE(CONCAT(#{receRqStart},':00'),'%Y-%m-%d %H:%i:%s') -->
+		</if>
+		<if test="receRqEnd!=null">
+			and t.finish_time &lt;= #{receRqEnd,jdbcType=TIMESTAMP}
+			<!-- and t.finish_time &lt;= STR_TO_DATE(CONCAT(#{receRqEnd},':59'),'%Y-%m-%d %H:%i:%s') -->
+		</if>
+		<if test="startPlate!=null and startPlate!=''">
+			and t.start_plate like CONCAT('%',#{startPlate},'%')
+		</if>
+		<if test="endPlate!=null and endPlate!=''">
+			and t.end_plate like CONCAT('%',#{endPlate},'%')
+		</if>
+		<if test="status!=null and status!=''">
+			and t.status = #{status}
+		</if>
+		<if test="fromType!=null and fromType!=''">
+			and g.from_type = #{fromType}
+		</if>
+		<if test="deFlag!=null and deFlag!=''">
+			and t.orther_flag = #{deFlag}
+		</if>
+		<if test="iffly!=null and iffly!=''">
+			and t.if_feidan = #{iffly}
+		</if>
+		<if test="sender!=null and sender!=''">
+			<!-- and g.sender in (${sender}) -->
+			and g.sender like CONCAT('%',#{sender},'%')
+		</if>
+		<if test="prodDesc!=null and prodDesc!=''">
+			and (select t1.prod_desc from TransportationM t1 where t1.trans_id = t.trans_id) like CONCAT('%',#{prodDesc},'%')
+		</if>
+		<if test="dsIfSettle!=null and dsIfSettle!=''">
+			and g.ds_if_settle = #{dsIfSettle}
+		</if>
+		<!--<if test="ifTaxTransport!=null and ifTaxTransport">
+			and t.if_tax_transport='Y'
+		</if>
+		<if test="ifTaxTransport!=null and !ifTaxTransport">
+			and t.if_tax_transport='N'
+		</if>-->
+		<if test="ifTaxTransport!=null and ifTaxTransport=='true'">
+			and t.if_tax_transport='Y'
+		</if>
+		<if test="ifTaxTransport!=null and ifTaxTransport=='false'">
+			and t.if_tax_transport='N'
+		</if>
+		<if test="ifSaveImage=='1'">
+			and t.comfirm_pic1_local!=''
+		</if>
+		<if test="ifSaveImage=='0'">
+			and IFNULL(t.comfirm_pic1_local,0)=0
+		</if>
+		<if test="goodTypeDesc!=null and goodTypeDesc!=''">
+			and t.good_type_desc like CONCAT('%', #{goodTypeDesc},'%')
+		</if>
+		<if test="payStatus!=null and payStatus!=''">
+			and p.status =#{payStatus}
+		</if>
+		<if test="ownerPayApplyFlag!=null and ownerPayApplyFlag!=''">
+			and p.owner_payapply_flag=#{ownerPayApplyFlag}
+		</if>
+
+	</select>
+	
+	
+</mapper>

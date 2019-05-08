@@ -1,0 +1,1220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="invoice">
+	<select id="applyList" resultType="com.brcc.business.invoice.vo.InvoiceMasterVo" parameterType="java.util.Map">
+		select DISTINCT
+            b.invoice_master_id as invoiceMasterId,
+            b.invoice_master_num as invoiceMasterNum,
+            round(ifnull(b.invoice_actual_amount,0),2) as "invoiceActualAmount",
+            round(ifnull(b.invoice_actual_weight,0),2) as "invoiceActualWeight",
+            b.invoice_title_id as invoiceTitleId,
+            b.invoice_title_name as invoiceTitleName,
+            b.invoice_client_id as invoiceClientId,
+            b.invoice_client_name as invoiceClientName,
+            b.invoice_status as invoiceStatus,
+            if(b.invoice_status = '10','新增' ,if(b.invoice_status = '20', '已申请' ,
+            if(b.invoice_status = '30','已同意',if(b.invoice_status = '60','拆分完毕','已作废')))) as "invoiceStatusDesc",
+            b.modify_date as modifyDate ,
+            b.create_date as createDate ,
+            b.apply_date as applyDate ,
+            b.platform_id as platformId,
+            b.remark,
+            b.apply_flag as applyFlag,
+            round(invoice_agree_amount,2) as "sumykAmount",
+            round(invoice_agree_weight,2) as "sumykWeight",
+            round(invoice_split_amount,2) as "sumyfAmount",
+            round(invoice_split_weight,2) as "sumyfWeight",
+            b.group_id as groupId,
+            b.group_name as groupName,
+            if(ifnull(b.ticket_opening_mark,0)=0,'结算重量',
+            if(ifnull(b.ticket_opening_mark,0)=1,'收货重量',
+            if(ifnull(b.ticket_opening_mark,0)=2,'装车重量','未知'))) as "ticketOpeningMarkDesc",
+            b.ticket_opening_mark as ticketOpeningMark,
+            b.invoice_desc as invoiceDesc
+            from invoicemaster b
+         where b.platform_id = #{platformId}
+		   AND b.if_show_flag='0'
+		<if test="invoiceTitleId!=null">
+			and b.invoice_title_id=#{invoiceTitleId}
+		</if>
+		<if test="invoiceClientId!=null">
+			and b.invoice_client_id=#{invoiceClientId}
+		    and b.invoice_status &gt;'10'
+		</if>
+		<if test="invoiceNo!=null and invoiceNo!=''">
+			and b.invoice_master_id = #{invoiceNo}
+		</if>
+		<if test="invoiceMasterId!=null">
+			and b.invoice_master_id=#{invoiceMasterId}
+		</if>
+		<if test="ticketOpeningMark!=null">
+			and b.ticket_opening_mark=#{ticketOpeningMark}
+		</if>	
+		<!-- 开票公司筛选 -->
+		<if test="invoiceClientName!=null and invoiceClientName!=''">
+			and b.invoice_client_name like CONCAT('%',#{invoiceClientName},'%') 
+		</if>	
+		<if test="invoiceTitleName!=null and invoiceTitleName!=''">
+			and b.invoice_title_name like CONCAT('%',#{invoiceTitleName},'%') 
+		</if>	
+		<if test="status=='20,60'">
+			and b.invoice_status in (${status})
+		</if>	
+		<if test="status!=null and status!='' and status!='20,60'">
+			and b.invoice_status = #{status}
+		</if>	
+		<if test="rqStart!=null">
+			and b.CREATE_DATE &gt;= #{rqStart,jdbcType=TIMESTAMP}
+		</if>	
+		<if test="rqEnd!=null">
+			and b.CREATE_DATE &lt;= #{rqEnd,jdbcType=TIMESTAMP}
+		</if>	
+		<if test="agreeTimeStart!=null">
+			and b.invoice_agree_time &gt;= #{agreeTimeStart,jdbcType=TIMESTAMP}
+		</if>	
+		<if test="agreeTimeEnd!=null">
+			and b.invoice_agree_time &lt;= #{agreeTimeEnd,jdbcType=TIMESTAMP}
+		</if>	
+		<if test="rqApplyStart!=null">
+			and b.apply_date &gt;= #{rqApplyStart,jdbcType=TIMESTAMP}
+		</if>	
+		<if test="rqApplyEnd!=null">
+			and b.apply_date &lt;= #{rqApplyEnd,jdbcType=TIMESTAMP}
+		</if>	
+		<if test="applyFlag!=null">
+			and b.apply_flag =#{applyFlag}
+		</if>
+		<if test="invoiceActualAmountS!=null">
+		  	 and b.invoice_actual_amount &gt;=#{invoiceActualAmountS}
+		</if>
+		<if test="invoiceActualAmountE!=null">
+		   and b.invoice_actual_amount&lt;=#{invoiceActualAmountE}
+		</if>
+		<if test="invoiceActualWeightS!=null">
+		   and b.invoice_actual_weight &gt;=#{invoiceActualWeightS}
+		</if>
+		<if test="invoiceActualWeightE!=null">
+			and b.invoice_actual_weight &lt;=#{invoiceActualWeightE}
+		</if>	
+		order by b.CREATE_DATE desc
+         
+	</select>
+	<select id="applyListCount" resultType="java.lang.Long" parameterType="java.util.Map">
+		select count(*)
+            from invoicemaster b
+         where b.platform_id = #{platformId}
+		   AND b.if_show_flag='0'
+		<if test="invoiceTitleId!=null">
+			and b.invoice_title_id=#{invoiceTitleId}
+		</if>
+		<if test="invoiceClientId!=null">
+			and b.invoice_client_id=#{invoiceClientId}
+		    and b.invoice_status &gt;'10'
+		</if>
+		<if test="invoiceNo!=null and invoiceNo!=''">
+			and b.invoice_master_id = #{invoiceNo}
+		</if>
+		<if test="invoiceMasterId!=null">
+			and b.invoice_master_id=#{invoiceMasterId}
+		</if>
+		<if test="ticketOpeningMark!=null">
+			and b.ticket_opening_mark=#{ticketOpeningMark}
+		</if>	
+		<!-- 开票公司筛选 -->
+		<if test="invoiceClientName!=null and invoiceClientName!=''">
+			and b.invoice_client_name like CONCAT('%',#{invoiceClientName},'%') 
+		</if>	
+		<if test="invoiceTitleName!=null and invoiceTitleName!=''">
+			and b.invoice_title_name like CONCAT('%',#{invoiceTitleName},'%') 
+		</if>	
+		<if test="status=='20,60'">
+			and b.invoice_status in (${status})
+		</if>	
+		<if test="status!=null and status!='' and status!='20,60'">
+			and b.invoice_status = #{status}
+		</if>	
+		<if test="rqStart!=null">
+			and b.CREATE_DATE &gt;= #{rqStart,jdbcType=TIMESTAMP}
+		</if>	
+		<if test="rqEnd!=null">
+			and b.CREATE_DATE &lt;= #{rqEnd,jdbcType=TIMESTAMP}
+		</if>	
+		<if test="agreeTimeStart!=null">
+			and b.invoice_agree_time &gt;= #{agreeTimeStart,jdbcType=TIMESTAMP}
+		</if>	
+		<if test="agreeTimeEnd!=null">
+			and b.invoice_agree_time &lt;= #{agreeTimeEnd,jdbcType=TIMESTAMP}
+		</if>	
+		<if test="rqApplyStart!=null">
+			and b.apply_date &gt;= #{rqApplyStart,jdbcType=TIMESTAMP}
+		</if>	
+		<if test="rqApplyEnd!=null">
+			and b.apply_date &lt;= #{rqApplyEnd,jdbcType=TIMESTAMP}
+		</if>	
+		<if test="applyFlag!=null">
+			and b.apply_flag =#{applyFlag}
+		</if>
+		<if test="invoiceActualAmountS!=null">
+		  	 and b.invoice_actual_amount &gt;=#{invoiceActualAmountS}
+		</if>
+		<if test="invoiceActualAmountE!=null">
+		   and b.invoice_actual_amount&lt;=#{invoiceActualAmountE}
+		</if>
+		<if test="invoiceActualWeightS!=null">
+		   and b.invoice_actual_weight &gt;=#{invoiceActualWeightS}
+		</if>
+		<if test="invoiceActualWeightE!=null">
+			and b.invoice_actual_weight &lt;=#{invoiceActualWeightE}
+		</if>		
+		order by b.CREATE_DATE desc
+         
+	</select>
+	
+	<select id="queryVatCarryList" resultType="com.brcc.business.invoice.vo.InvoiceVo" parameterType="java.util.Map">
+		SELECT
+		    DISTINCT
+			v.vat_client_id AS "vatClientId",
+			v.vat_client_name AS "vatClientName",
+			v.vat_carry_id AS "vatCarryId",
+			v.vat_carry_name AS "vatCarryName",
+		    c.invoice_config_amount as invoiceConfigAmount
+		FROM
+	      (vatflowdetail v JOIN  vatflowmaster vat ON(v.vat_flow_master_id = vat.vat_flow_master_id and vat.vat_status='20'))
+          LEFT JOIN  invoiceconfig c ON (v.vat_carry_id=c.company_out_id and c.config_status='20')
+	   where vat.platform_id =#{platformId}
+			and v.vat_client_id = #{vatClientId}
+			AND vat.vat_status='20'
+	</select>
+	<select id="queryDetailList" resultType="com.brcc.business.invoice.vo.PayBillInfoVo" parameterType="java.util.Map">
+		SELECT
+            p.delivery_id as deliveryId,
+            p.trans_id as transId,
+            p.publish_id as publishId,
+            p.start_plate as startPlate,
+            p.end_plate as endPlate,
+            p.good_type_name as goodTypeName,
+            p.good_type_desc as goodTypeDesc,
+            p.price,
+            p.owner_adjust_amt as ownerAdjustAmt,
+            p.owner_adjust_flag as ownerAdjustFlag,
+            p.owner_adjust_type as ownerAdjustType,
+            p.owner_adjust_tot_amt as ownerAdjustTotAmt,
+            if(vat.vat_rate_chose='1', 
+            if(vat.vat_acc_type='1',
+            round((p.price+if(p.owner_adjust_flag='Y' and p.owner_adjust_type='01',p.owner_adjust_amt,0)) * (1 + vat.vat_standard_rate) ,if(#{ifOwnerTaxpriceMf}=1,1,2)),
+            round((p.price+if(p.owner_adjust_flag='Y' and p.owner_adjust_type='01',p.owner_adjust_amt,0))/(1-vat.vat_standard_rate) ,if(#{ifOwnerTaxpriceMf}=1,1,2))),
+            if(vat.vat_acc_type='1',
+            round((p.price+if(p.owner_adjust_flag='Y' and p.owner_adjust_type='01',p.owner_adjust_amt,0)) * (1 + vat.vat_policy_rate) ,if(#{ifOwnerTaxpriceMf}=1,1,2)),
+            round((p.price+if(p.owner_adjust_flag='Y' and p.owner_adjust_type='01',p.owner_adjust_amt,0))/(1-vat.vat_policy_rate),if(#{ifOwnerTaxpriceMf}=1,1,2)))) as "priceTax",
+            round(ifnull(p.settle_weight, 0),2) as settleWeight,
+            ifnull(tr.truck_loading_weight, 0) as truckLoadingWeight,
+            ifnull(tr.take_delivery_weight, 0) as takeDeliveryWeight,
+            ifnull(p.deduct_amount, 0) as deductAmount,
+            ifnull(t.out_amount, 0) AS "payAmountActTax",
+            p.driver_id as driverId,
+            p.driver_name as driverName,
+            p.vehicle_id as vehicleId,
+            p.vehicle_num as vehicleNum,
+            t.docu_id as "zfId",
+            t.docu_num as "zfNum",
+            p.pay_date AS "payDate",
+            t.carry_name as "vatCarryName",
+            t.client_name as "vatClientName",
+            c.company_name as companyName,
+            m.depend_num AS "dependNum2",
+            p.finish_time AS "finishTime",
+            ifnull((select sum(pc.pay_fee_amount) FROM pay_bill_child pc WHERE pc.zf_id = t.docu_id GROUP BY pc.zf_id),0) AS "payFeeAmount",
+            t.vat_flow_master_id as vatFlowMasterId,
+            m.bill_sender as billSender,
+			m.contract_number as  contractNumber,
+			m.contract_type as contractType,
+            tr.delivery_time AS "deliveryTime"
+        FROM
+             (vatcapitaldetail t,vatflowdetail vat)
+            LEFT JOIN pay_bill p ON (t.docu_id=p.zf_id and t.docu_num=p.zf_num)
+            LEFT JOIN company c ON (c.seq_id = p.publish_company_id)
+            LEFT JOIN goodsorderm m ON (m.publish_id = p.publish_id)
+            LEFT JOIN transportationdelivery tr ON (tr.delivery_id = p.delivery_id)
+        WHERE t.platform_id=#{platformId}
+		  AND t.vat_flow_master_id=vat.vat_flow_master_id
+          AND t.client_id=vat.vat_client_id
+          AND t.carry_id=vat.vat_carry_id
+		  AND t. docu_type = '30'
+		  AND t.block_status='20'
+          AND p.status='20'
+          AND t.if_invoice = '0'
+		  and t.carry_id=#{invoiceCarryId}
+		  and not EXISTS(SELECT 1 from invoicedetail i where i.pay_bill_id = t.docu_id 
+		  and i.invoice_title_id=#{companyId}  and i.invoice_client_id=#{invoiceCarryId} and i.if_invoice>0)
+		  and (ifnull(tr.if_broker_people_toll_flag, 'N')='N' or tr.if_funds_control_flag = '0' or (EXISTS(select 1 from broker_profit_config bpc where bpc.special_broker_id = tr.company_id
+		       and bpc.if_special_case = '1' and bpc.if_upload_capital_flow = '1' and bpc.broker_profit_config_status = '20') and tr.if_funds_control_flag = '2')
+		       or not EXISTS(select 1 from broker_profit_config bpc where bpc.special_broker_id = tr.company_id
+		       and bpc.if_special_case = '1' and bpc.if_upload_capital_flow = '1' and bpc.broker_profit_config_status = '20'))
+		  <if test="companyId!=null">
+			and t.client_id=#{companyId}
+		  </if>
+		  <if test="deliveryId!=null">
+			and p.delivery_id like CONCAT('%',#{deliveryId},'%')
+		  </if>
+		  <if test="transId!=null">
+			and p.trans_id like CONCAT('%',#{transId},'%')
+		  </if>
+		  <if test="publishId!=null">
+			and p.publish_id like CONCAT('%',#{publishId},'%')
+		  </if>
+		  <if test="zfNum!=null and zfNum!=''">
+			and p.zf_num like CONCAT('%',#{zfNum},'%')
+		  </if>
+		  <if test="startPlat!=null and startPlat!=''">
+			and p.start_plate like CONCAT('%',#{startPlat},'%')
+		  </if>
+		  <if test="endPlat!=null and endPlat!=''">
+			and p.end_plate like CONCAT('%',#{endPlat},'%')
+		  </if>
+		  <if test="billSender!=null and billSender!=''">
+			and m.bill_sender like CONCAT('%',#{billSender},'%')
+		  </if>
+		  <if test="zcRqStart!=null">
+			and tr.delivery_time &gt;= #{zcRqStart,jdbcType=TIMESTAMP}
+		  </if>	
+		  <if test="zcRqEnd!=null">
+			and tr.delivery_time &lt;= #{zcRqEnd,jdbcType=TIMESTAMP}
+		  </if>
+		  <if test="companyName!=null and companyName!=''">
+			and c.company_name like CONCAT('%',#{companyName},'%')
+		  </if>
+		  <if test="dependNum!=null and dependNum!=''">
+			and m.depend_num like CONCAT('%',#{dependNum},'%')
+		  </if>
+		  <if test="priceTax!=null">
+			and p.price_tax like CONCAT('%',#{priceTax},'%')
+		  </if>
+		  <if test="vatClientName!=null and vatClientName!=''">
+			and t.client_name like CONCAT('%',#{vatClientName},'%')
+		  </if>
+		  <if test="goodStyle!=null and goodStyle!=''">
+			and p.good_type_desc like CONCAT('%',#{goodStyle},'%')
+		  </if>
+		  <if test="rqStart!=null">
+			and p.pay_date &gt;= #{rqStart,jdbcType=TIMESTAMP}
+		  </if>	
+		  <if test="rqEnd!=null">
+			and p.pay_date &lt;= #{rqEnd,jdbcType=TIMESTAMP}
+		  </if>
+		  <if test="finishTimeStart!=null">
+			and p.finish_time &gt;= #{finishTimeStart,jdbcType=TIMESTAMP}
+		  </if>
+			<if test ="contractNumber != '' and  contractNumber !=null ">
+			and m.contract_number like CONCAT('%',#{contractNumber},'%')
+			</if>
+		  <if test="finishTimeEnd!=null">
+			and p.finish_time &lt;= #{finishTimeEnd,jdbcType=TIMESTAMP}
+		  </if>
+		  order by p.pay_date desc
+	</select>
+
+	<select id="queryDetailListSum" resultType="com.brcc.business.invoice.vo.SumTotalVo" parameterType="java.util.Map">
+		SELECT 
+                ifnull(sum(t.out_amount),0)       as "payAmountActTaxsum",  
+                ifnull(round(sum(p.settle_weight),2),0)          as "settleWeightSum", 
+                ifnull(round(sum(p.deduct_amount),2),0) as "deductAmountSum", 
+                ifnull(round(sum(tr.truck_loading_weight),2),0)  as "truckWeightSum",  
+                ifnull(round(sum(tr.take_delivery_weight),2),0)  as "takeWeightSum"  
+            FROM   (vatcapitaldetail t, vatflowdetail vat)
+                LEFT JOIN pay_bill p ON (t.docu_id=p.zf_id and t.docu_num=p.zf_num)
+                LEFT JOIN company c ON(c.seq_id=p.publish_company_id)    
+                LEFT JOIN goodsorderm m ON(m.publish_id=p.publish_id)   
+                LEFT JOIN transportationdelivery tr ON(tr.delivery_id=p.delivery_id)
+            where t.platform_id=#{platformId}
+			AND t.vat_flow_master_id=vat.vat_flow_master_id
+			AND t.client_id=vat.vat_client_id
+			AND t.carry_id=vat.vat_carry_id
+			AND t.docu_type='30'
+			AND t.block_status='20'
+			AND p.status='20'     
+			AND t.if_invoice='0'
+			and t.carry_id=#{invoiceCarryId}
+		    and not EXISTS(SELECT 1 from invoicedetail i where i.pay_bill_id = t.docu_id 
+		    and i.invoice_title_id=#{companyId}  and i.invoice_client_id=#{invoiceCarryId} and i.if_invoice>0)
+		    and (ifnull(tr.if_broker_people_toll_flag, 'N')='N' or tr.if_funds_control_flag = '0' or (EXISTS(select 1 from broker_profit_config bpc where bpc.special_broker_id = tr.company_id
+		       and bpc.if_special_case = '1' and bpc.if_upload_capital_flow = '1' and bpc.broker_profit_config_status = '20') and tr.if_funds_control_flag = '2')
+		       or not EXISTS(select 1 from broker_profit_config bpc where bpc.special_broker_id = tr.company_id
+		       and bpc.if_special_case = '1' and bpc.if_upload_capital_flow = '1' and bpc.broker_profit_config_status = '20'))
+		      <if test="companyId!=null">
+				and t.client_id=#{companyId}
+			  </if>
+			  <if test="deliveryId!=null">
+				and p.delivery_id like CONCAT('%',#{deliveryId},'%')
+			  </if>
+			  <if test="transId!=null">
+				and p.trans_id like CONCAT('%',#{transId},'%')
+			  </if>
+			  <if test="publishId!=null">
+				and p.publish_id like CONCAT('%',#{publishId},'%')
+			  </if>
+			  <if test="zfNum!=null and zfNum!=''">
+				and p.zf_num like CONCAT('%',#{zfNum},'%')
+			  </if>
+			  <if test="startPlat!=null and startPlat!=''">
+				and p.start_plate like CONCAT('%',#{startPlat},'%')
+			  </if>
+			  <if test="endPlat!=null and endPlat!=''">
+				and p.end_plate like CONCAT('%',#{endPlat},'%')
+			  </if>
+			  <if test="billSender!=null and billSender!=''">
+				and m.bill_sender like CONCAT('%',#{billSender},'%')
+			  </if>
+			  <if test="zcRqStart!=null">
+				and tr.delivery_time &gt;= #{zcRqStart,jdbcType=TIMESTAMP}
+			  </if>	
+			  <if test="zcRqEnd!=null">
+				and tr.delivery_time &lt;= #{zcRqEnd,jdbcType=TIMESTAMP}
+			  </if>
+			  <if test="companyName!=null and companyName!=''">
+				and c.company_name like CONCAT('%',#{companyName},'%')
+			  </if>
+			  <if test="dependNum!=null and dependNum!=''">
+				and m.depend_num like CONCAT('%',#{dependNum},'%')
+			  </if>
+			  <if test="priceTax!=null">
+				and p.price_tax like CONCAT('%',#{priceTax},'%')
+			  </if>
+			  <if test="vatClientName!=null and vatClientName!=''">
+				and t.client_name like CONCAT('%',#{vatClientName},'%')
+			  </if>
+			  <if test="goodStyle!=null and goodStyle!=''">
+				and p.good_type_desc like CONCAT('%',#{goodStyle},'%')
+			  </if>
+			  <if test="rqStart!=null">
+				and p.pay_date &gt;= #{rqStart,jdbcType=TIMESTAMP}
+			  </if>	
+			  <if test="rqEnd!=null">
+				and p.pay_date &lt;= #{rqEnd,jdbcType=TIMESTAMP}
+			  </if>
+			  <if test="finishTimeStart!=null">
+				and p.finish_time &gt;= #{finishTimeStart,jdbcType=TIMESTAMP}
+			  </if>	
+			  <if test="finishTimeEnd!=null">
+				and p.finish_time &lt;= #{finishTimeEnd,jdbcType=TIMESTAMP}
+			  </if>
+	</select>
+	<select id="queryInvoiceParam" resultType="com.brcc.business.invoice.vo.InvoiceVo" parameterType="java.util.Map">
+		SELECT
+		  DISTINCT
+		  t.invoice_title_name as "invoiceTitleName",
+		  t.invoice_client_name as "invoiceClientName",
+		  v.if_begin as "ifBegin",
+		  v.if_end as "ifEnd"
+		FROM
+		  invoicemaster t JOIN (
+		  vatflowdetail v JOIN vatflowmaster vt ON (
+		  v.vat_flow_master_id = vt.vat_flow_master_id and vt.vat_status='20'
+		  ))ON (t.invoice_title_id = v.vat_client_id and t.invoice_client_id=v.vat_carry_id)
+		where 
+		  t.invoice_title_id=#{invoiceTitleId}
+		  and t.invoice_client_id=#{invoiceCarryId}
+		  and t.invoice_master_id=#{invoiceMasterId}
+		  LIMIT 0,1
+	</select>
+	
+	<select id="queryPayBillInfo" resultType="com.brcc.business.invoice.vo.PayBillInfoVo" parameterType="java.util.Map">
+		select 
+              p.zf_id as zfId,
+              p.delivery_id as deliveryId,
+              p.trans_id as transId,
+              p.publish_id as publishId,
+              t.out_amount as outAmount,
+              p.settle_weight as settleWeight,
+              p.start_plate as startPlate,
+              p.end_plate as endPlate,
+              p.driver_id as driverId,
+              p.driver_name as driverName,
+              p.vehicle_id as vehicleId,
+              p.vehicle_num as vehicleNum,
+              p.good_type_desc as goodTypeDesc,
+              t.vat_flow_master_id as vatFlowMasterId,
+              ifnull(tr.truck_loading_weight,0) as truckLoadingWeight,
+              ifnull(tr.take_delivery_weight,0) as takeDeliveryWeight,
+              t.vat_capital_detail_id as vatCapitalDetailId
+       from 
+         vatcapitaldetail t 
+         LEFT JOIN pay_bill p ON(t.docu_id=p.zf_id and p.zf_num=t.docu_num)
+         LEFT JOIN transportationdelivery tr ON (tr.delivery_id = p.delivery_id)
+      where t.platform_id = #{platformId}
+	  and t.client_id=#{invoiceTitleId}
+	  and t.carry_id = #{invoiceCarryId}
+      and t.block_status='20'
+      and t.docu_type='30'
+      and p.status='20'
+	  and p.zf_id =#{zfId}
+      and ifnull(t.if_invoice,0)=0
+	</select>
+	
+	<select id="queryInvoiceDetailSum" resultType="com.brcc.business.invoice.vo.SumTotalVo" parameterType="java.util.Map">
+		SELECT 
+			ifnull(sum(b.invoice_actual_amount),0) as "invoiceAmtSum",
+			ifnull(sum(b.invoice_actual_weight),0) as "invoiceweightSum"
+			from invoicedetail b
+		where 1=1
+		AND b.platform_id = #{platformId}
+		and b.invoice_master_id =#{invoiceMasterId}
+	</select>
+	
+	<select id="queryApplayFlagInvoiceMasterId" resultType="com.brcc.business.invoice.vo.InvoiceMasterVo" parameterType="java.util.Map">
+		SELECT
+			i.invoice_master_id as invoiceMasterId
+		FROM
+			invoicedetail i,invoicedetail v
+		WHERE
+			i.invoice_client_id =#{companyId}
+		AND i.delivery_id=v.delivery_id 
+		AND v.invoice_title_id=#{companyId}
+		AND v.invoice_master_id=#{invoiceMasterId}
+		GROUP BY i.invoice_master_id
+	</select>
+	
+	<select id="queryInvoiceDetailListData" resultType="com.brcc.business.invoice.vo.InvoiceDetailVo" parameterType="java.util.Map">
+		SELECT
+	        b.invoice_detail_id as invoiceDetailId,
+	        b.pay_bill_id as payBillId,
+	        t.zf_num as zfNum,
+	        b.delivery_id as deliveryId,
+	        b.trans_id as transId,
+	        b.publish_id as publishId,
+	        round(b.invoice_actual_amount,2) as "invoiceActualAmount",
+	        b.invoice_no as invoiceNo,
+	        round(ifnull(b.invoice_actual_weight, 0),5) as "invoiceActualWeight",
+	        b.invoice_title_id as invoiceTitleId,
+	        b.invoice_title_name as invoiceTitleName,
+	        b.invoice_client_id as invoiceClientId,
+	        b.invoice_client_name as invoiceClientName,
+	        b.create_date as "createDate",
+	        b.create_person_id as createPersonId,
+	        b.create_person_name as createPersonName,
+	        b.modify_date as "modifyDate",
+	        b.modify_person_id as modifyPersonId,
+	        b.modify_person_name as modifyPersonName,
+	        b.invoice_master_id as invoiceMasterId,
+	        b.if_invoice as ifInvoice,
+	        b.platform_id as platformId,
+	        b.if_begin as ifBegin,
+	        b.start_plate as startPlate,
+	        b.end_plate as endPlate,
+	        b.driver_id as driverId,
+	        b.driver_name as driverName,
+	        b.vehicle_id as vehicleId,
+	        b.vehicle_num as vehicleNum,
+	        b.good_type_desc as goodTypeDesc,
+	        m.depend_num  as "dependNum",
+	        b.invoice_agree_time as "invoiceAgreeTime",
+	        b.invoice_split_id as invoiceSplitId,
+	        b.invoice_split_num as invoiceSplitNum,
+	        round(ifnull(b.truck_loading_weight,0),5) as "truckLoadingWeight",
+	        round(ifnull(b.take_delivery_weight,0),5) as "takeDeliveryWeight",
+	        t.owner_adjust_amt as ownerAdjustAmt,
+	        t.owner_adjust_flag as ownerAdjustFlag,
+	        t.owner_adjust_type as ownerAdjustType,
+	        t.owner_adjust_tot_amt as ownerAdjustTotAmt,
+	        if(vat.vat_rate_chose='1', 
+	        if(vat.vat_acc_type='1',
+	        round((t.price+if(t.owner_adjust_flag='Y' and t.owner_adjust_type='01',t.owner_adjust_amt,0)) * (1 + vat.vat_standard_rate) ,if(#{ifOwnerTaxpriceMf}=1,1,2)),
+	        round((t.price+if(t.owner_adjust_flag='Y' and t.owner_adjust_type='01',t.owner_adjust_amt,0))/(1-vat.vat_standard_rate) ,if(#{ifOwnerTaxpriceMf}=1,1,2))),
+	        if(vat.vat_acc_type='1',
+	        round((t.price+if(t.owner_adjust_flag='Y' and t.owner_adjust_type='01',t.owner_adjust_amt,0)) * (1 + vat.vat_policy_rate) ,if(#{ifOwnerTaxpriceMf}=1,1,2)),
+	        round((t.price+if(t.owner_adjust_flag='Y' and t.owner_adjust_type='01',t.owner_adjust_amt,0))/(1-vat.vat_policy_rate),if(#{ifOwnerTaxpriceMf}=1,1,2)))) as "priceTax",
+	        t.deduct_amount as deductAmount,
+	        t.finish_time as "finishTime",
+	        ifnull((select sum(p.pay_fee_amount) from pay_bill_child p where p.zf_id=t.zf_id GROUP BY p.zf_id),0) as "payFeeAmount",
+	        if(ifnull(b.ticket_opening_mark,0)=0,'结算重量',
+	        if(ifnull(b.ticket_opening_mark,0)=1,'收货重量',
+	        if(ifnull(b.ticket_opening_mark,0)=2,'装车重量','未知'))) as "ticketOpeningMarkDesc",
+	        (select i.invoice_master_id from invoicedetail i where i.invoice_title_id=#{companyId} 
+	        and i.delivery_id=b.delivery_id and i.invoice_master_id!=b.invoice_master_id) as "ifApply",
+	        a.pound_location as poundLocation,  
+	        a.pound_num as poundNum,
+	        a.shipping_time AS shippingTime,
+	        t.pay_amount as "payAmount",
+	        m.contract_number as "contractNumber",
+	        m.contract_type as "contractType"
+	    from (invoicedetail b LEFT JOIN goodsorderm m ON(b.publish_id=m.publish_id))
+	    left join transportationdelivery  a on (a.delivery_id = b.delivery_id)
+	    LEFT JOIN pay_bill t ON(b.pay_bill_id=t.zf_id)
+	    LEFT JOIN vatflowdetail vat on(vat.vat_flow_master_id=b.vat_flow_master_id and vat.vat_client_id=b.invoice_title_id and vat.vat_carry_id=b.invoice_client_id)
+	    where b.platform_id = #{platformId}
+		and b.invoice_master_id = #{invoiceMasterId}
+		<if test="ifInvoice!=null and ifInvoice!=''">
+			and b.if_invoice=#{ifInvoice}
+		</if>
+		<if test="invoiceSplitNum!=null and invoiceSplitNum!=''">
+			and b.invoice_split_num = #{invoiceSplitNum}
+		</if>
+		<if test="invoiceNo!=null and invoiceNo!=''">
+			and b.invoice_no = #{invoiceNo}
+		</if>
+		  <if test="deliveryId!=null">
+			and b.delivery_id like CONCAT('%',#{deliveryId},'%')
+		  </if>
+		  <if test="transId!=null">
+			and b.trans_id like CONCAT('%',#{transId},'%')
+		  </if>
+		  <if test="publishId!=null">
+			and b.publish_id like CONCAT('%',#{publishId},'%')
+		  </if>
+		 <if test="zfNum!=null and zfNum!=''">
+			and t.zf_num like CONCAT('%',#{zfNum},'%')
+		  </if>
+		 <if test="startPlat!=null and startPlat!=''">
+			and b.start_plate like CONCAT('%',#{startPlat},'%')
+		  </if>
+		  <if test="endPlat!=null and endPlat!=''">
+			and b.end_plate like CONCAT('%',#{endPlat},'%')
+		  </if>
+		  <if test="goodStyle!=null and goodStyle!=''">
+			and b.good_type_desc like CONCAT('%',#{goodStyle},'%')
+		  </if>
+		  <if test="dependNum!=null and dependNum!=''">
+			and m.depend_num like CONCAT('%',#{dependNum},'%')
+		  </if>
+		  <if test="rqStart!=null">
+			and b.CREATE_DATE &gt;= #{rqStart,jdbcType=TIMESTAMP}
+		  </if>	
+		  <if test="rqEnd!=null">
+			and b.CREATE_DATE &lt;= #{rqEnd,jdbcType=TIMESTAMP}
+		  </if>
+		  <if test="finishTimeStart!=null">
+			and t.finish_time &gt;= #{finishTimeStart,jdbcType=TIMESTAMP}
+		  </if>	
+		  <if test="finishTimeEnd!=null">
+			and t.finish_time &lt;= #{finishTimeEnd,jdbcType=TIMESTAMP}
+		  </if>
+		  <if test="contractNumber != null and contractNumber != ''">
+			  and m.contract_number like CONCAT('%',#{contractNumber},'%')
+		  </if>
+		order by b.CREATE_DATE
+	</select>
+	
+	<select id="queryInvoiceDetailListDataSum" resultType="com.brcc.business.invoice.vo.SumTotalVo" parameterType="java.util.Map">
+		SELECT 
+            ifnull(round(sum(ifnull(b.invoice_actual_amount,0)),2),0) as "invoiceActualAmountSum",
+            ifnull(round(sum(ifnull(b.invoice_actual_weight,0)),5),0) as "invoiceActualWeightSum",
+            ifnull(sum(round(t.deduct_amount,2)),0) as "deductAmountSum",
+            round(ifnull(sum(b.truck_loading_weight),0),5) as "truckWeightSum",
+            round(ifnull(sum(b.take_delivery_weight),0),5) as "takeWeightSum",
+            if(ifnull(b.ticket_opening_mark,0)=0,'结算重量',
+	        if(ifnull(b.ticket_opening_mark,0)=1,'收货重量',
+	        if(ifnull(b.ticket_opening_mark,0)=2,'装车重量','未知'))) as "ticketOpeningMarkDesc"
+            from invoicedetail b LEFT JOIN pay_bill t ON(b.pay_bill_id=t.zf_id)
+                 LEFT JOIN goodsorderm m ON(b.publish_id=m.publish_id)
+        where b.platform_id = #{platformId}
+		and b.invoice_master_id = #{invoiceMasterId}
+		<if test="ifInvoice!=null and ifInvoice!=''">
+			and b.if_invoice=#{ifInvoice}
+		</if>
+		<if test="invoiceSplitNum!=null and invoiceSplitNum!=''">
+			and b.invoice_split_num = #{invoiceSplitNum}
+		</if>
+		<if test="invoiceNo!=null and invoiceNo!=''">
+			and b.invoice_no = #{invoiceNo}
+		</if>
+		  <if test="deliveryId!=null">
+			and b.delivery_id like CONCAT('%',#{deliveryId},'%')
+		  </if>
+		  <if test="transId!=null">
+			and b.trans_id like CONCAT('%',#{transId},'%')
+		  </if>
+		  <if test="publishId!=null">
+			and b.publish_id like CONCAT('%',#{publishId},'%')
+		  </if>
+		 <if test="zfNum!=null and zfNum!=''">
+			and t.zf_num like CONCAT('%',#{zfNum},'%')
+		  </if>
+		 <if test="startPlat!=null and startPlat!=''">
+			and b.start_plate like CONCAT('%',#{startPlat},'%')
+		  </if>
+		  <if test="endPlat!=null and endPlat!=''">
+			and b.end_plate like CONCAT('%',#{endPlat},'%')
+		  </if>
+		  <if test="goodStyle!=null and goodStyle!=''">
+			and b.good_type_desc like CONCAT('%',#{goodStyle},'%')
+		  </if>
+		  <if test="dependNum!=null and dependNum!=''">
+			and m.depend_num like CONCAT('%',#{dependNum},'%')
+		  </if>
+		  <if test="rqStart!=null">
+			and b.CREATE_DATE &gt;= #{rqStart,jdbcType=TIMESTAMP}
+		  </if>	
+		  <if test="rqEnd!=null">
+			and b.CREATE_DATE &lt;= #{rqEnd,jdbcType=TIMESTAMP}
+		  </if>
+		  <if test="finishTimeStart!=null">
+			and t.finish_time &gt;= #{finishTimeStart,jdbcType=TIMESTAMP}
+		  </if>	
+		  <if test="finishTimeEnd!=null">
+			and t.finish_time &lt;= #{finishTimeEnd,jdbcType=TIMESTAMP}
+		  </if> 
+	</select>
+	
+	<select id="listInvoiceSplit" resultType="com.brcc.business.invoice.vo.InvoicemastersplitVo" parameterType="java.util.Map">
+		SELECT
+            b.invoice_split_id as invoiceSplitId,
+            b.invoice_split_num as invoiceSplitNum,
+            b.invoice_master_id as invoiceMasterId,
+            b.invoice_no as invoiceNo,
+            ifnull(b.invoice_plan_amount,0) as "invoicePlanAmount",
+            ifnull(b.invoice_actual_amount,0) as "invoiceActualAmount",
+            round(ifnull(b.invoice_actual_weight,0),2) as "invoiceActualWeight",
+            b.invoice_title_id as invoiceTitleId,
+            b.invoice_title_name as invoiceTitleName,
+            b.invoice_client_id as invoiceClientId,
+            b.invoice_client_name as invoiceClientName,
+            b.invoice_status as invoiceStatus,
+            if(b.invoice_status = '10','新增' ,if(b.invoice_status = '20' , '已申请' ,if(b.invoice_status = '30','已同意','已作废' ))) as "invoiceStatusDesc",
+            b.modify_date as modifyDate ,
+            b.create_date as createDate ,
+            b.platform_id as platformId,
+            b.remark,
+            b.invoice_agree_time as invoiceAgreeTime,
+            ifnull(b.print_num,0) as "printNum",
+            b.group_id as groupId,
+            b.group_name as groupName,
+            if(ifnull(b.ticket_opening_mark,0)=0,'结算重量',
+            if(ifnull(b.ticket_opening_mark,0)=1,'收货重量',
+            if(ifnull(b.ticket_opening_mark,0)=2,'装车重量','未知'))) as "ticketOpeningMarkDesc",
+            <!-- 不含税金额 -->
+            (select sum(p.pay_amount) from 
+                apptms.invoicedetail d,apptms.pay_bill p 
+              where d.pay_bill_id = p.zf_id and d.invoice_split_id=b.invoice_split_id) as "noTaxAmount" 
+            from invoicemastersplit b
+         where b.platform_id = #{platformId}
+		   AND b.if_show_flag='0'
+		<if test="invoiceNo!=null and invoiceNo!=''">
+			and b.invoice_no like CONCAT('%',#{invoiceNo},'%')
+		</if>
+		<if test="invoiceMasterId!=null">
+			and b.invoice_master_id = #{invoiceMasterId}
+		</if>  
+		<if test="invoiceTitleId!=null">
+			and b.invoice_title_id = #{invoiceTitleId}
+		</if>
+		<if test="invoiceClientId!=null">
+			and b.invoice_client_id = #{invoiceClientId}
+		</if>
+		<!-- 开票公司筛选 -->
+		<if test="invoiceClientName!=null and invoiceClientName!=''">
+			and b.invoice_client_name like CONCAT('%',#{invoiceClientName},'%')
+		</if>  
+		<if test="invoiceTitleName!=null and invoiceTitleName!=''">
+			and b.invoice_title_name like CONCAT('%',#{invoiceTitleName},'%')
+		</if>  
+		<if test="status!=null and status!=''">
+			and b.invoice_status = #{status}
+		</if>
+		<if test="rqStart!=null">
+			and b.CREATE_DATE &gt;= #{rqStart,jdbcType=TIMESTAMP}
+		  </if>	
+		  <if test="rqEnd!=null">
+			and b.CREATE_DATE &lt;= #{rqEnd,jdbcType=TIMESTAMP}
+		  </if>
+		  <if test="agreeTimeStart!=null">
+			and b.invoice_agree_time &gt;= #{agreeTimeStart,jdbcType=TIMESTAMP}
+		  </if>	
+		  <if test="agreeTimeEnd!=null">
+			and b.invoice_agree_time &lt;= #{agreeTimeEnd,jdbcType=TIMESTAMP}
+		  </if>
+		  <if test="ticketOpeningMark!=null">
+			and b.ticket_opening_mark = #{ticketOpeningMark}
+		</if>  
+		order by b.CREATE_DATE
+	</select>
+	
+	<select id="listInvoiceSplitSum" resultType="com.brcc.business.invoice.vo.SumTotalVo" parameterType="java.util.Map">
+		SELECT
+			ifnull(sum(round(ifnull(b.invoice_actual_amount,0),2)), 0) as "invoiceActualAmountSum",
+			ifnull(sum(round(ifnull(b.invoice_actual_weight,0),2)), 0) as "invoiceActualWeightSum"
+		from invoicemastersplit b
+		where b.platform_id = #{platformId}
+		  AND b.if_show_flag='0'
+		<if test="invoiceNo!=null and invoiceNo!=''">
+			and b.invoice_no like CONCAT('%',#{invoiceNo},'%')
+		</if>
+		<if test="invoiceMasterId!=null">
+			and b.invoice_master_id = #{invoiceMasterId}
+		</if>  
+		<if test="invoiceTitleId!=null">
+			and b.invoice_title_id = #{invoiceTitleId}
+		</if>
+		<if test="invoiceClientId!=null">
+			and b.invoice_client_id = #{invoiceClientId}
+		</if>
+		<!-- 开票公司筛选 -->
+		<if test="invoiceClientName!=null and invoiceClientName!=''">
+			and b.invoice_client_name like CONCAT('%',#{invoiceClientName},'%')
+		</if>  
+		<if test="invoiceTitleName!=null and invoiceTitleName!=''">
+			and b.invoice_title_name like CONCAT('%',#{invoiceTitleName},'%')
+		</if>  
+		<if test="status!=null and status!=''">
+			and b.invoice_status = #{status}
+		</if>
+		<if test="rqStart!=null">
+			and b.CREATE_DATE &gt;= #{rqStart,jdbcType=TIMESTAMP}
+		  </if>	
+		  <if test="rqEnd!=null">
+			and b.CREATE_DATE &lt;= #{rqEnd,jdbcType=TIMESTAMP}
+		  </if>
+		  <if test="agreeTimeStart!=null">
+			and b.invoice_agree_time &gt;= #{agreeTimeStart,jdbcType=TIMESTAMP}
+		  </if>	
+		  <if test="agreeTimeEnd!=null">
+			and b.invoice_agree_time &lt;= #{agreeTimeEnd,jdbcType=TIMESTAMP}
+		  </if>
+		  <if test="ticketOpeningMark!=null">
+			and b.ticket_opening_mark = #{ticketOpeningMark}
+		</if>
+	</select>
+	
+	<select id="queryInvalidInvoiceDetailSum" resultType="com.brcc.business.invoice.vo.SumTotalVo" parameterType="java.util.Map">
+		SELECT
+			ifnull(round(sum(i.invoice_actual_amount),2), 0) as "invalidInvoiceAmountSum",
+			ifnull(round(sum(i.invoice_actual_weight),2), 0) as "invalidInvoiceWeightSum"
+	      FROM
+		     invoicedetail i
+	     WHERE
+		     i.invoice_master_id =#{invoiceMasterId} and i.if_invoice in('1','0')
+	</select>
+	
+	<select id="queryIfSplitCompleted" resultType="com.brcc.business.invoice.vo.InvoiceMasterVo" parameterType="java.util.Map">
+		SELECT
+		    if(round(sum(i.invoice_actual_amount),2)=(select round(m.invoice_actual_amount,2) from invoicemaster m where m.invoice_master_id=#{invoiceMasterId}),'Y','N') as "ifAmountSplitCompleted",
+            if(round(sum(i.invoice_actual_weight),2)=(select round(m.invoice_actual_weight,2) from invoicemaster m where m.invoice_master_id=#{invoiceMasterId}),'Y','N') as "ifWeightSplitCompleted"
+       FROM
+	     invoicedetail i
+       WHERE
+	     i.invoice_master_id =#{invoiceMasterId} and i.if_invoice in('3','2')
+	</select>
+	
+	<select id="queryInvoicedSum" resultType="com.brcc.business.invoice.vo.InvoiceMasterVo" parameterType="java.util.Map">
+		SELECT
+			 round(i.invoice_actual_amount,2) as "invoiceActualAmount",
+			 round(i.invoice_actual_weight,2) as "invoiceActualWeight",
+		     round(ifnull(sum(vc.invoice_actual_amount),0),2)as "invoicedAmount",
+		     round(ifnull(sum(vc.invoice_actual_weight),0),2) as "invoicedWeight"
+      FROM
+	     invoicemaster i LEFT JOIN invoicedetail vc on(vc.if_invoice='2' and vc.invoice_master_id=#{invoiceMasterId})
+     WHERE
+	     i.invoice_master_id =#{invoiceMasterId}
+	</select>
+	
+	<select id="queryIfExistsNext" resultType="java.lang.Long" parameterType="java.util.Map">
+		select count(1) from(
+	       select
+			   v.vat_flow_master_id
+		   from
+				invoicedetail i,
+				vatflowdetail v
+		   where
+			 i.invoice_master_id =#{invoiceMasterId}
+			 and i.vat_flow_master_id=v.vat_flow_master_id
+	         and v.vat_client_id=#{companyId} group by v.vat_flow_master_id) aa
+	</select>
+	
+	<select id="queryDetailAreadyApplyMasterId" resultType="com.brcc.business.invoice.vo.InvoiceMasterVo" parameterType="java.util.Map">
+		SELECT
+		   i.invoice_master_id as invoiceMasterId
+		FROM
+			invoicedetail i
+		where 1=1
+	    and i.invoice_title_id=#{companyId}
+	    AND EXISTS(select 1 from invoicedetail z 
+	    where z.invoice_master_id =#{invoiceMasterId} and i.pay_bill_id=z.pay_bill_id)
+	    GROUP BY i.invoice_master_id
+	</select>
+	
+	<select id="callAutoApplyToNextPro" parameterType="java.util.HashMap" statementType="CALLABLE" resultType="java.util.Map">
+		{call pro_invoice_automatic_unit(
+			#{companyId,jdbcType=INTEGER,mode=IN},
+			#{invoiceMasterId,jdbcType=INTEGER,mode=IN},
+			#{userId,jdbcType=INTEGER,mode=IN},
+			#{userName,jdbcType=VARCHAR,mode=IN},
+			#{groupId,jdbcType=INTEGER,mode=IN},
+			#{groupName,jdbcType=VARCHAR,mode=IN},
+			#{outResult,jdbcType=VARCHAR,mode=OUT},
+			#{outResultReason,jdbcType=VARCHAR,mode=OUT}
+		)}
+  	</select>
+  	
+  	<select id="queryDetailVoList" resultType="com.brcc.business.invoice.vo.DetailVo" parameterType="java.util.Map">
+  		SELECT
+			b.invoice_detail_id as "invoiceDetailId",
+			round(b.invoice_actual_amount,2) as "invoiceDetailAmount"
+		from invoicedetail b 
+		where 1=1
+		  AND b.platform_id = #{platformId}
+		  AND b.invoice_master_id = #{invoiceMasterId}
+		  AND b.if_invoice='1'
+		  ORDER BY b.invoice_actual_amount DESC
+  	</select>
+  	
+  	<select id="queryInvoiceMaxAmount" resultType="com.brcc.business.invoice.vo.InvoiceVo" parameterType="java.util.Map">
+  		SELECT
+			ROUND(
+				ifnull(
+					i.invoice_config_amount,
+					100000
+				),
+				2
+			) AS "invoiceConfigAmount"
+		FROM
+			invoiceconfig i
+		WHERE
+			i.company_out_id = #{companyId}
+		AND i.config_status = '20'
+		AND i.platform_id = #{platformId}
+  	</select>
+  	
+  	<select id="queryInvoiceSplitSum" resultType="com.brcc.business.invoice.vo.InvoiceVo" parameterType="java.util.Map">
+  		SELECT
+		    b.invoice_title_id as "invoiceTitleId",
+		    b.invoice_title_name as "invoiceTitleName",
+		    b.invoice_client_id as "invoiceClientId",
+		    b.invoice_client_name as "invoiceClientName",
+			round(sum(ifnull(b.invoice_actual_amount,0)),2) as "invoiceAmount",
+			round(sum(ifnull(b.invoice_actual_weight,0)),2) as "invoiceWeight",
+			i.group_id as "groupId",<!-- 区分当前操作者的集团id和name -->
+			i.group_name as "groupName",
+			i.ticket_opening_mark as "ticketOpeningMark"
+		from invoicedetail b LEFT JOIN invoicemaster i ON(b.invoice_master_id=i.invoice_master_id)
+		where 1=1
+		  AND b.platform_id = #{platformId}
+		  AND b.invoice_detail_id in (${detailIds})
+  	</select>
+
+	<select id="listRedInvoiceSplit" resultType="com.brcc.business.invoice.vo.InvoiceMasterSrrVo" parameterType="java.util.Map">
+		SELECT
+		b.invoice_split_srr_id  as invoiceSplitSrrId,
+		b.invoice_split_id as invoiceSplitId,
+		b.invoice_split_num as invoiceSplitNum,
+		b.invoice_master_id as invoiceMasterId,
+		b.invoice_no as invoiceNo,
+		ifnull(b.invoice_plan_amount,0) as "invoicePlanAmount",
+		ifnull(b.invoice_actual_amount,0) as "invoiceActualAmount",
+		round(ifnull(b.invoice_actual_weight,0),2) as "invoiceActualWeight",
+		b.invoice_title_id as invoiceTitleId,
+		b.invoice_title_name as invoiceTitleName,
+		b.invoice_client_id as invoiceClientId,
+		b.invoice_client_name as invoiceClientName,
+		b.invoice_status as invoiceStatus,
+		if(b.invoice_status = '10','新增' ,if(b.invoice_status = '20' , '已申请' ,if(b.invoice_status = '30','已同意','已作废' ))) as "invoiceStatusDesc",
+		b.modify_date as modifyDate ,
+		b.create_date as createDate ,
+		b.platform_id as platformId,
+		b.remark,
+		b.invoice_agree_time as invoiceAgreeTime,
+		ifnull(b.print_num,0) as "printNum",
+		b.group_id as groupId,
+		b.group_name as groupName,
+		if(ifnull(b.ticket_opening_mark,0)=0,'结算重量',
+		if(ifnull(b.ticket_opening_mark,0)=1,'收货重量',
+		if(ifnull(b.ticket_opening_mark,0)=2,'装车重量','未知'))) as "ticketOpeningMarkDesc",
+		<!-- 不含税金额 -->
+		(select sum(p.pay_amount) from
+		apptms.invoicedetail_srr d,apptms.pay_bill p
+		where d.pay_bill_id = p.zf_id and d.invoice_split_id=b.invoice_split_id) as "noTaxAmount",
+		b.red_invoice_no as redInvoiceNo,
+	    b.red_invoice_date  as redInvoiceDate,
+	    b.invoice_type as invoiceType,
+		if(b.invoice_type ='ZF','作废',if(b.invoice_type ='HC','红冲','未知')) as invoiceTypeDesc
+		from invoicemastersplit_srr b
+		where b.platform_id = #{platformId}
+		AND b.if_show_flag='0'
+		<if test="invoiceNo!=null and invoiceNo!=''">
+			and b.invoice_no like CONCAT('%',#{invoiceNo},'%')
+		</if>
+		<if test="redInvoiceNo!=null and redInvoiceNo!=''">
+			and b.red_invoice_no like CONCAT('%',#{redInvoiceNo},'%')
+		</if>
+		<if test="invoiceMasterId!=null">
+			and b.invoice_master_id = #{invoiceMasterId}
+		</if>
+		<if test="invoiceTitleId!=null">
+			and b.invoice_title_id = #{invoiceTitleId}
+		</if>
+		<if test="invoiceClientId!=null">
+			and b.invoice_client_id = #{invoiceClientId}
+		</if>
+		<!-- 开票公司筛选 -->
+		<if test="invoiceClientName!=null and invoiceClientName!=''">
+			and b.invoice_client_name like CONCAT('%',#{invoiceClientName},'%')
+		</if>
+		<if test="invoiceTitleName!=null and invoiceTitleName!=''">
+			and b.invoice_title_name like CONCAT('%',#{invoiceTitleName},'%')
+		</if>
+		<if test="status!=null and status!=''">
+			and b.invoice_status = #{status}
+		</if>
+		<if test="rqStart!=null">
+			and b.CREATE_DATE &gt;= #{rqStart,jdbcType=TIMESTAMP}
+		</if>
+		<if test="rqEnd!=null">
+			and b.CREATE_DATE &lt;= #{rqEnd,jdbcType=TIMESTAMP}
+		</if>
+		<if test="agreeTimeStart!=null">
+			and b.invoice_agree_time &gt;= #{agreeTimeStart,jdbcType=TIMESTAMP}
+		</if>
+		<if test="agreeTimeEnd!=null">
+			and b.invoice_agree_time &lt;= #{agreeTimeEnd,jdbcType=TIMESTAMP}
+		</if>
+
+		<if test="redAgreeTimeStart!=null">
+			and b.red_invoice_date &gt;= #{redAgreeTimeStart,jdbcType=TIMESTAMP}
+		</if>
+		<if test="redAgreeTimeEnd!=null">
+			and b.red_invoice_date &lt;= #{redAgreeTimeEnd,jdbcType=TIMESTAMP}
+		</if>
+
+		<if test="ticketOpeningMark!=null">
+			and b.ticket_opening_mark = #{ticketOpeningMark}
+		</if>
+		<if test="invoiceType!=null and invoiceType!=''">
+			and b.invoice_type = #{invoiceType}
+		</if>
+		order by b.CREATE_DATE
+	</select>
+
+
+	<select id="listRedInvoiceSplitSum" resultType="com.brcc.business.invoice.vo.SumTotalVo" parameterType="java.util.Map">
+		SELECT
+		ifnull(sum(round(ifnull(b.invoice_actual_amount,0),2)), 0) as "invoiceActualAmountSum",
+		ifnull(sum(round(ifnull(b.invoice_actual_weight,0),2)), 0) as "invoiceActualWeightSum"
+		from invoicemastersplit_srr b
+		where b.platform_id = #{platformId}
+		AND b.if_show_flag='0'
+		<if test="invoiceNo!=null and invoiceNo!=''">
+			and b.invoice_no like CONCAT('%',#{invoiceNo},'%')
+		</if>
+		<if test="redInvoiceNo!=null and redInvoiceNo!=''">
+			and b.red_invoice_no like CONCAT('%',#{redInvoiceNo},'%')
+		</if>
+		<if test="invoiceMasterId!=null">
+			and b.invoice_master_id = #{invoiceMasterId}
+		</if>
+		<if test="invoiceTitleId!=null">
+			and b.invoice_title_id = #{invoiceTitleId}
+		</if>
+		<if test="invoiceClientId!=null">
+			and b.invoice_client_id = #{invoiceClientId}
+		</if>
+		<!-- 开票公司筛选 -->
+		<if test="invoiceClientName!=null and invoiceClientName!=''">
+			and b.invoice_client_name like CONCAT('%',#{invoiceClientName},'%')
+		</if>
+		<if test="invoiceTitleName!=null and invoiceTitleName!=''">
+			and b.invoice_title_name like CONCAT('%',#{invoiceTitleName},'%')
+		</if>
+		<if test="status!=null and status!=''">
+			and b.invoice_status = #{status}
+		</if>
+		<if test="rqStart!=null">
+			and b.CREATE_DATE &gt;= #{rqStart,jdbcType=TIMESTAMP}
+		</if>
+		<if test="rqEnd!=null">
+			and b.CREATE_DATE &lt;= #{rqEnd,jdbcType=TIMESTAMP}
+		</if>
+		<if test="agreeTimeStart!=null">
+			and b.invoice_agree_time &gt;= #{agreeTimeStart,jdbcType=TIMESTAMP}
+		</if>
+		<if test="agreeTimeEnd!=null">
+			and b.invoice_agree_time &lt;= #{agreeTimeEnd,jdbcType=TIMESTAMP}
+		</if>
+		<if test="redAgreeTimeStart!=null">
+			and b.red_invoice_date &gt;= #{redAgreeTimeStart,jdbcType=TIMESTAMP}
+		</if>
+		<if test="redAgreeTimeEnd!=null">
+			and b.red_invoice_date &lt;= #{redAgreeTimeEnd,jdbcType=TIMESTAMP}
+		</if>
+		<if test="ticketOpeningMark!=null">
+			and b.ticket_opening_mark = #{ticketOpeningMark}
+		</if>
+		<if test="invoiceType!=null and invoiceType!=''">
+			and b.invoice_type = #{invoiceType}
+		</if>
+	</select>
+
+
+	<select id="queryRedInvoiceDetailListData" resultType="com.brcc.business.invoice.vo.InvoiceDetailSrrVo" parameterType="java.util.Map">
+		SELECT
+		b.invoice_detail_srr_id as invoiceDetailSrrId,
+		b.invoice_detail_id as invoiceDetailId,
+		b.pay_bill_id as payBillId,
+		t.zf_num as zfNum,
+		b.delivery_id as deliveryId,
+		b.trans_id as transId,
+		b.publish_id as publishId,
+		round(b.invoice_actual_amount,2) as "invoiceActualAmount",
+		b.invoice_no as invoiceNo,
+		round(ifnull(b.invoice_actual_weight, 0),5) as "invoiceActualWeight",
+		b.invoice_title_id as invoiceTitleId,
+		b.invoice_title_name as invoiceTitleName,
+		b.invoice_client_id as invoiceClientId,
+		b.invoice_client_name as invoiceClientName,
+		b.create_date as "createDate",
+		b.create_person_id as createPersonId,
+		b.create_person_name as createPersonName,
+		b.modify_date as "modifyDate",
+		b.modify_person_id as modifyPersonId,
+		b.modify_person_name as modifyPersonName,
+		b.invoice_master_id as invoiceMasterId,
+		b.if_invoice as ifInvoice,
+		b.platform_id as platformId,
+		b.if_begin as ifBegin,
+		b.start_plate as startPlate,
+		b.end_plate as endPlate,
+		b.driver_id as driverId,
+		b.driver_name as driverName,
+		b.vehicle_id as vehicleId,
+		b.vehicle_num as vehicleNum,
+		b.good_type_desc as goodTypeDesc,
+		m.depend_num  as "dependNum",
+		b.invoice_agree_time as "invoiceAgreeTime",
+		b.invoice_split_id as invoiceSplitId,
+		b.invoice_split_num as invoiceSplitNum,
+		round(ifnull(b.truck_loading_weight,0),5) as "truckLoadingWeight",
+		round(ifnull(b.take_delivery_weight,0),5) as "takeDeliveryWeight",
+		t.owner_adjust_amt as ownerAdjustAmt,
+		t.owner_adjust_flag as ownerAdjustFlag,
+		t.owner_adjust_type as ownerAdjustType,
+		t.owner_adjust_tot_amt as ownerAdjustTotAmt,
+		if(vat.vat_rate_chose='1',
+		if(vat.vat_acc_type='1',
+		round((t.price+if(t.owner_adjust_flag='Y' and t.owner_adjust_type='01',t.owner_adjust_amt,0)) * (1 + vat.vat_standard_rate) ,if(#{ifOwnerTaxpriceMf}=1,1,2)),
+		round((t.price+if(t.owner_adjust_flag='Y' and t.owner_adjust_type='01',t.owner_adjust_amt,0))/(1-vat.vat_standard_rate) ,if(#{ifOwnerTaxpriceMf}=1,1,2))),
+		if(vat.vat_acc_type='1',
+		round((t.price+if(t.owner_adjust_flag='Y' and t.owner_adjust_type='01',t.owner_adjust_amt,0)) * (1 + vat.vat_policy_rate) ,if(#{ifOwnerTaxpriceMf}=1,1,2)),
+		round((t.price+if(t.owner_adjust_flag='Y' and t.owner_adjust_type='01',t.owner_adjust_amt,0))/(1-vat.vat_policy_rate),if(#{ifOwnerTaxpriceMf}=1,1,2)))) as "priceTax",
+		t.deduct_amount as deductAmount,
+		t.finish_time as "finishTime",
+		ifnull((select sum(p.pay_fee_amount) from pay_bill_child p where p.zf_id=t.zf_id GROUP BY p.zf_id),0) as "payFeeAmount",
+		if(ifnull(b.ticket_opening_mark,0)=0,'结算重量',
+		if(ifnull(b.ticket_opening_mark,0)=1,'收货重量',
+		if(ifnull(b.ticket_opening_mark,0)=2,'装车重量','未知'))) as "ticketOpeningMarkDesc",
+		(select i.invoice_master_id from invoicedetail i where i.invoice_title_id=#{companyId}
+		and i.delivery_id=b.delivery_id and i.invoice_master_id!=b.invoice_master_id) as "ifApply",
+		a.pound_location as poundLocation,
+		a.pound_num as poundNum,
+		a.shipping_time AS shippingTime,
+		t.pay_amount as "payAmount"
+		from (invoicedetail_srr b LEFT JOIN goodsorderm m ON(b.publish_id=m.publish_id))
+		left join transportationdelivery  a on (a.delivery_id = b.delivery_id)
+		LEFT JOIN pay_bill t ON(b.pay_bill_id=t.zf_id)
+		LEFT JOIN vatflowdetail vat on(vat.vat_flow_master_id=b.vat_flow_master_id and vat.vat_client_id=b.invoice_title_id and vat.vat_carry_id=b.invoice_client_id)
+		where b.platform_id = #{platformId}
+		and b.invoice_split_id = #{invoiceSplitId}
+		<if test="ifInvoice!=null and ifInvoice!=''">
+			and b.if_invoice=#{ifInvoice}
+		</if>
+		<if test="invoiceSplitNum!=null and invoiceSplitNum!=''">
+			and b.invoice_split_num = #{invoiceSplitNum}
+		</if>
+		<if test="invoiceNo!=null and invoiceNo!=''">
+			and b.invoice_no = #{invoiceNo}
+		</if>
+		<if test="deliveryId!=null">
+			and b.delivery_id like CONCAT('%',#{deliveryId},'%')
+		</if>
+		<if test="transId!=null">
+			and b.trans_id like CONCAT('%',#{transId},'%')
+		</if>
+		<if test="publishId!=null">
+			and b.publish_id like CONCAT('%',#{publishId},'%')
+		</if>
+		<if test="zfNum!=null and zfNum!=''">
+			and t.zf_num like CONCAT('%',#{zfNum},'%')
+		</if>
+		<if test="startPlat!=null and startPlat!=''">
+			and b.start_plate like CONCAT('%',#{startPlat},'%')
+		</if>
+		<if test="endPlat!=null and endPlat!=''">
+			and b.end_plate like CONCAT('%',#{endPlat},'%')
+		</if>
+		<if test="goodStyle!=null and goodStyle!=''">
+			and b.good_type_desc like CONCAT('%',#{goodStyle},'%')
+		</if>
+		<if test="dependNum!=null and dependNum!=''">
+			and m.depend_num like CONCAT('%',#{dependNum},'%')
+		</if>
+		<if test="rqStart!=null">
+			and b.CREATE_DATE &gt;= #{rqStart,jdbcType=TIMESTAMP}
+		</if>
+		<if test="rqEnd!=null">
+			and b.CREATE_DATE &lt;= #{rqEnd,jdbcType=TIMESTAMP}
+		</if>
+		<if test="finishTimeStart!=null">
+			and t.finish_time &gt;= #{finishTimeStart,jdbcType=TIMESTAMP}
+		</if>
+		<if test="finishTimeEnd!=null">
+			and t.finish_time &lt;= #{finishTimeEnd,jdbcType=TIMESTAMP}
+		</if>
+		order by b.CREATE_DATE
+	</select>
+
+	<select id="queryRedInvoiceDetailListDataSum" resultType="com.brcc.business.invoice.vo.SumTotalVo" parameterType="java.util.Map">
+		SELECT
+		ifnull(round(sum(ifnull(b.invoice_actual_amount,0)),2),0) as "invoiceActualAmountSum",
+		ifnull(round(sum(ifnull(b.invoice_actual_weight,0)),5),0) as "invoiceActualWeightSum",
+		ifnull(sum(round(t.deduct_amount,2)),0) as "deductAmountSum",
+		round(ifnull(sum(b.truck_loading_weight),0),5) as "truckWeightSum",
+		round(ifnull(sum(b.take_delivery_weight),0),5) as "takeWeightSum",
+		if(ifnull(b.ticket_opening_mark,0)=0,'结算重量',
+		if(ifnull(b.ticket_opening_mark,0)=1,'收货重量',
+		if(ifnull(b.ticket_opening_mark,0)=2,'装车重量','未知'))) as "ticketOpeningMarkDesc"
+		from invoicedetail_srr b LEFT JOIN pay_bill t ON(b.pay_bill_id=t.zf_id)
+		LEFT JOIN goodsorderm m ON(b.publish_id=m.publish_id)
+		where b.platform_id = #{platformId}
+		and b.invoice_split_id = #{invoiceSplitId}
+		<if test="ifInvoice!=null and ifInvoice!=''">
+			and b.if_invoice=#{ifInvoice}
+		</if>
+		<if test="invoiceSplitNum!=null and invoiceSplitNum!=''">
+			and b.invoice_split_num = #{invoiceSplitNum}
+		</if>
+		<if test="invoiceNo!=null and invoiceNo!=''">
+			and b.invoice_no = #{invoiceNo}
+		</if>
+		<if test="deliveryId!=null">
+			and b.delivery_id like CONCAT('%',#{deliveryId},'%')
+		</if>
+		<if test="transId!=null">
+			and b.trans_id like CONCAT('%',#{transId},'%')
+		</if>
+		<if test="publishId!=null">
+			and b.publish_id like CONCAT('%',#{publishId},'%')
+		</if>
+		<if test="zfNum!=null and zfNum!=''">
+			and t.zf_num like CONCAT('%',#{zfNum},'%')
+		</if>
+		<if test="startPlat!=null and startPlat!=''">
+			and b.start_plate like CONCAT('%',#{startPlat},'%')
+		</if>
+		<if test="endPlat!=null and endPlat!=''">
+			and b.end_plate like CONCAT('%',#{endPlat},'%')
+		</if>
+		<if test="goodStyle!=null and goodStyle!=''">
+			and b.good_type_desc like CONCAT('%',#{goodStyle},'%')
+		</if>
+		<if test="dependNum!=null and dependNum!=''">
+			and m.depend_num like CONCAT('%',#{dependNum},'%')
+		</if>
+		<if test="rqStart!=null">
+			and b.CREATE_DATE &gt;= #{rqStart,jdbcType=TIMESTAMP}
+		</if>
+		<if test="rqEnd!=null">
+			and b.CREATE_DATE &lt;= #{rqEnd,jdbcType=TIMESTAMP}
+		</if>
+		<if test="finishTimeStart!=null">
+			and t.finish_time &gt;= #{finishTimeStart,jdbcType=TIMESTAMP}
+		</if>
+		<if test="finishTimeEnd!=null">
+			and t.finish_time &lt;= #{finishTimeEnd,jdbcType=TIMESTAMP}
+		</if>
+	</select>
+</mapper>

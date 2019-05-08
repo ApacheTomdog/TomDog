@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: business-server
+  cloud:
+    config:
+      username: user
+      password: config
+      discovery:
+        enabled: true
+eureka:
+  client:
+    service-url:
+      defaultZone: ${eurekaZone:http://user:eureka@10.0.160.213:8761/eureka,http://user:eureka@10.0.160.214:8761/eureka}
+encrypt:
+  keyStore:
+    location: classpath:/server.jks
+    password: ${keystore.passwd:123456}
+    alias: tps
+    secret: ${keystore.passwd:123456}

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="common">
+	<sql id="common.filterQuery">
+	    <if test='ifShowAdmin =="N"'>
+	    	<if test ='accountFrom =="TMS"'>
+	    		 and t.if_can_show ='Y' 
+	    	</if>
+	    	<if test ='accountFrom =="DS"'>
+	    		and t.if_can_show ='N' and t.fd_user_id =#{fdUserId}
+	    	</if>
+		</if>
+	</sql>	
+	
+	
+	<sql id="common.commonQuery">
+		<if test="companyId!='' and companyId != null">
+			 and t.company_id = #{companyId}
+		</if>
+	</sql>	
+
+	<sql id="common.commonQuery2">
+		<if test="companyId!='' and companyId != null">
+			 and t.publish_company_id = #{companyId}
+		</if>
+	</sql>	
+</mapper>

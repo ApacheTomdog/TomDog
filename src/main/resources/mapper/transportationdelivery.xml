@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="transportationdelivery">
+    <select id="queryTDByDeliverId" parameterType="java.util.Map" resultType="com.brcc.business.transportbill.vo.TransportationDeliveryQueryVo">
+        select
+        t.business_mode as businessMode,
+        t.delivery_id as deliveryId,
+        t.destination_lng as destinationLng,
+        t.destination_lat as destinationLat,
+        t.end_plate as endPlate,
+        t.finish_time as finishTime,
+        t.comfirm_pic1_local as comfirmPic1Local,
+        t.rob_delivery_type as robDeliveryType,
+        t.publish_id as publishId
+        from transportationdelivery t
+        where t.delivery_id =#{deliveryId}
+    </select>
+    <select id="queryGOByPublishId" resultType="String" parameterType="Long">
+        select g.from_plat_name as fromPlatName
+        from goodsorderm g
+        where g.publish_id=#{publishId}
+    </select>
+    <insert id="insert" parameterType="java.util.Map">
+        insert into TransportationDelivery
+        (
+        create_date,
+        trans_id,
+        publish_id,
+        weight,
+        qty,
+        amount,
+        company_id,
+        driver_id,
+        vehicle_id,
+        create_person,
+        platform_id,
+        start_plate,
+        end_plate,
+        get_order_plate,
+        bill_sender,
+        bill_sender_mobile,
+        bill_taker,
+        bill_taker_mobile,
+        good_type,
+        good_type_desc,
+        receiver,
+        receiver_mobile,
+        sender,
+        sender_mobile,
+        status,
+        departure ,
+        departure_lng ,
+        departure_lat ,
+        destination ,
+        destination_lng ,
+        destination_lat ,
+        get_order_address,
+        get_order_address_lng,
+        get_order_address_lat,
+        update_date,
+        update_person,
+        price,
+        publish_company_id,
+        operate_type,
+        docu_source,
+        pickup_date,
+        fd_user_id,
+        if_can_show,
+        <if test="ifFly != null and ifFly != ''">
+            if_feidan,
+        </if>
+        pri_publish_id,
+        standard_tax,
+        price_tax,
+        if_tax_transport,
+        vat_flow_master_id,
+        <if test="brokerPeopleType != null and brokerPeopleType != ''">
+            broker_people_toll_type,
+            if_broker_people_toll_flag,
+        </if>
+        <if test="tollAmount != null and tollAmount != ''">
+            broker_people_toll_amount,
+        </if>
+        <if test="tollRatio != null and tollRatio != ''">
+            broker_people_toll_ratio,
+        </if>
+        carry_company_id,
+        group_id,
+        group_name,
+        owner_adjust_flag,
+        owner_adjust_type,
+        owner_adjust_amt,
+        good_price,
+        loss_type,
+        loss_ratio,
+        loss_weight,
+        <if test="spellListNum != null and spellListNum != ''">
+            spell_list_num,
+        </if>
+        <if test="spellListPas != null and spellListPas != ''">
+            spell_list_pas,
+        </if>
+        <if test="ifSpellList != null and ifSpellList != ''">
+            if_spell_list,
+        </if>
+        <if test="robDeliveryType != null and robDeliveryType != ''">
+            rob_delivery_type,
+        </if>
+        <if test="businessMode != null and businessMode != ''">
+            business_mode,
+        </if>
+        if_funds_control_flag
+        )
+        select
+        now(),
+        a.trans_id,
+        a.publish_id,
+        #{dispatchWeight},
+        #{dispatchQty},
+        round(#{dispatchWeight} * a.price ,2),
+        a.company_id,
+        #{driverId},
+        #{vehicleId},
+        #{userId},
+        #{platformId},
+        a.start_plate,
+        a.end_plate,
+        a.get_order_plate,
+        a.bill_sender,
+        a.bill_sender_mobile,
+        a.bill_taker,
+        a.bill_taker_mobile,
+        a.good_type,
+        a.good_type_desc,
+        a.receiver,
+        a.receiver_mobile,
+        a.sender,
+        a.sender_mobile,
+        '10',
+        a.departure ,
+        a.departure_lng ,
+        a.departure_lat ,
+        a.destination ,
+        a.destination_lng ,
+        a.destination_lat ,
+        a.get_order_address,
+        a.get_order_address_lng,
+        a.get_order_address_lat,
+        now(),
+        #{userId},
+        a.price,
+        a.publish_company_id,
+        'WEB',
+        #{docuSource},
+        a.pickup_date,
+        a.fd_user_id,
+        a.if_can_show,
+        <if test="ifFly != null and ifFly != ''">
+            #{ifFly},
+        </if>
+        a.pri_publish_id,
+        a.standard_tax,
+        a.price_tax,
+        a.if_tax_transport,
+        a.vat_flow_master_id,
+        <if test="brokerPeopleType != null and brokerPeopleType != ''">
+            #{brokerPeopleType},
+            'Y',
+        </if>
+        <if test="tollAmount != null and tollAmount != ''">
+            #{tollAmount},
+        </if>
+        <if test="tollRatio != null and tollRatio != ''">
+            #{tollRatio},
+        </if>
+        a.carry_company_id,
+        a.group_id,
+        a.group_name,
+        a.owner_adjust_flag,
+        a.owner_adjust_type,
+        a.owner_adjust_amt,
+        a.good_price,
+        a.loss_type,
+        a.loss_ratio,
+        a.loss_weight,
+        <if test="spellListNum != null and spellListNum != ''">
+            #{spellListNum},
+        </if>
+        <if test="spellListPas != null and spellListPas != ''">
+            #{spellListPas},
+        </if>
+        <if test="ifSpellList != null and ifSpellList != ''">
+            #{ifSpellList},
+        </if>
+        <if test="robDeliveryType != null and robDeliveryType != ''">
+            #{robDeliveryType},
+        </if>
+        <if test="businessMode != null and businessMode != ''">
+            #{businessMode},
+        </if>
+        #{ifFundsControlFlag}
+        from TransportationM a
+        where a.trans_id = #{transId}
+        and a.platform_id = #{platformId}
+        <selectKey keyProperty="deliveryId" resultType="java.lang.Long" order="AFTER">
+            SELECT LAST_INSERT_ID() as deliveryId
+        </selectKey>
+    </insert>
+
+</mapper>

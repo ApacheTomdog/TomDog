@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="credit">
+  
+	<select id="proCreditAmountAdjust" parameterType="java.util.HashMap" statementType="CALLABLE" resultType="java.util.Map">
+		{call pro_credit_amount_adjust(
+			#{creditAmountAdjustId,jdbcType=INTEGER,mode=IN},
+			#{outResult,jdbcType=VARCHAR,mode=OUT},
+			#{outResultReason,jdbcType=VARCHAR,mode=OUT}
+		)}
+	</select>
+
+
+	<select id="proCreditRepay" parameterType="java.util.HashMap" statementType="CALLABLE" resultType="java.util.Map">
+		{call pro_credit_repay(
+			#{creditRepayId,jdbcType=INTEGER,mode=IN},
+			#{outResult,jdbcType=VARCHAR,mode=OUT},
+			#{outResultReason,jdbcType=VARCHAR,mode=OUT}
+		)}
+	</select>
+	
+	<select id="proCapitalDetail" parameterType="java.util.HashMap" statementType="CALLABLE" resultType="java.util.Map">
+		{call pro_capital_detail(
+			#{vatCompanyRechargeId, jdbcType=VARCHAR , mode=IN},
+			#{docuType, jdbcType=VARCHAR,  mode=IN},
+			#{userId ,jdbcType=VARCHAR , mode=IN},
+			#{userName, jdbcType=VARCHAR, mode=IN},
+			#{outResult, jdbcType=VARCHAR,  mode=OUT},
+			#{outResultReason ,jdbcType=VARCHAR , mode=OUT}
+		)}
+	</select>
+		
+</mapper>

@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="priceChange">
+	<!--委托承运货源单发布列表 -->
+	<select id="list" resultType="com.brcc.business.priceChange.vo.PriceChangeVo" parameterType="java.util.Map">
+		  SELECT
+		        t.appoint_person_info as appointPersonInfo,
+				t.publish_id AS publishId,
+				t.weight AS weight,
+				t.qty AS qty,
+				t.amount AS amount,
+				t.status AS status,
+				t.platform_id AS platformId,
+				c.company_name AS companyName,
+				date_format(t.create_date,'%Y-%m-%d %H:%i:%s') as createDate ,
+				date_format(t.pickup_date,'%Y-%m-%d %H:%i:%s') as pickupDate ,	
+				if(t.pickup_date &lt; now(),'Y','N') as isTimeOut,   
+				t.limit_time AS limitTime,
+				t.ps as remark,
+				t.depend_num AS dependNum,
+			 	round(t.price, 2) as price, 
+				<!--  
+					if(t.if_audit='0',t.price,
+						if((t.owner_adjust_flag='Y' AND T.owner_adjust_type='01'),
+						(t.price + IFNULL(t.owner_adjust_amt,0.00)),0.00)) as price,
+				-->
+				t.start_plate AS startPlate,
+				t.end_plate AS endPlate,
+				t.from_type AS fromType,
+				t.prod_desc AS prodDesc,
+				t.init_qty AS initQty,
+				t.init_amount AS initAmount,
+				t.get_order_plate AS getOrderPlate,
+				t.good_type_desc AS goodTypeDesc,
+				t.init_weight AS initWeight,
+				t.sendKM AS sendKM,
+				t.sender AS sender, 
+				t.sender_mobile AS senderMobile, 
+				t.receiver_mobile AS receiverMobile, 
+				t.receiver AS receiver,
+				t.bill_sender AS billSender,
+				t.bill_sender_mobile AS billSenderMobile, 
+				t.bill_taker AS billTaker, 
+				t.bill_taker_mobile AS billTakerMobile,
+				t.vehicle_style_var AS vehicleStyleVar,
+				t.prod_desc AS prodDesc, 
+				t.heavy_piece AS heavyPiece,
+				t.good_price AS goodPrice,
+				t.loss_type AS lossType,
+				t.loss_ratio AS lossRatio,
+				t.loss_weight AS lossWeight,
+				t.detachable AS detachable,
+				if(t.detachable = 0,'不可拆',if(t.detachable = 1,'可拆','不可拆')) as detachableDesc,
+				t.depend_num2 AS dependNum2,
+				'' as publishNum,
+				t.sale_weight AS saleWeight,
+				t.sale_weight as billWeight, 
+				if(t.appoint_company_id='','N','Y')  "appointFlag",
+				t.qb_type AS qbType,
+				c.contact_mobile  as "consignorNamePhone",
+				t.appoint_team_type AS appointTeamType,
+				t.estimateKM AS estimateKM,
+				t.appoint_team_id AS appointTeamId,
+				t.send_group as sendGroupType,
+				(SELECT t1.team_name FROM TeamCompany t1 where t1.team_id = t.appoint_team_id limit 0,1) as appointTeamName,
+				if(ifnull(t.send_group,'') = 'ALL','全部', if(ifnull(t.send_group,'') = 'WEB','WEB用户',if(ifnull(t.send_group,'') = 'APP','手机APP用户',''))) as sendGroup,
+				t.ps2,
+				t.ps3,
+				t.ps4,
+				t.ps5,
+				t.ps1,
+				t.company_id AS companyId,
+				t.docu_pri_sec as docuprisec,
+				t.docu_type as docutype,
+				t.pin_dan_num as pindannum,
+				t.ds_if_settle as "dsIfSettle",
+				if(t.ds_if_settle=0,'否','是') as "dsIfSettleDesc",
+				t.if_tax_transport AS ifTaxTransport,
+				if(t.if_tax_transport='Y','是','否') as "ifTaxTransportDesc",
+				t.vat_flow_master_id AS vatFlowMasterId,
+				t.listing_price as "listingPrice",
+			    t.dq_flag as dqflag,
+			    if(t.loss_type='1','定额','定率') as "lossTypeDesc",
+				if(t.loss_type='1',CONCAT(t.loss_weight*1000,'（kg/车）'),CONCAT(t.loss_ratio*1000,'（‰/车）')) as "lossWeightDesc"
+		   FROM  goodsorderm t,company c
+		WHERE t.company_id = c.seq_id
+		 and t.platform_id = #{platformId}
+		 and t.if_tax_transport = 'Y'
+		 and t.status = '10'
+		 <!-- and t.if_audit = '1' -->
+		 and c.create_company_id = #{carryId}
+		 <if test="publishId !='' and publishId != null">
+			and t.publish_id like CONCAT('%',#{publishId},'%')
+		</if>
+		<if test="rqStart != null">
+			and t.create_date &gt;= #{rqStart,jdbcType=TIMESTAMP}
+		</if>
+		<if test="rqEnd != null">
+			and t.create_date &lt;= #{rqEnd,jdbcType=TIMESTAMP}		
+		</if>
+			order by 
+		if(t.appoint_company_id=0,0,1) desc , 
+		if(t.docu_type='1' || t.docu_type='2',
+		if(t.docu_pri_sec='1',t.publish_id ,t.pri_publish_id) , t.publish_id ) desc,
+		if(t.docu_type='1' || t.docu_type='2',t.docu_pri_sec*-1,t.publish_id) desc
+ 
+	</select>
+	  
+
+	<select id="goodsordermAuditPro" parameterType="java.util.HashMap" statementType="CALLABLE" resultType="java.util.Map">
+		{call pro_goodsorderm_audit_unit(
+			#{priceChangeId,jdbcType=INTEGER,mode=IN},
+			#{priceChangeType,jdbcType=VARCHAR,mode=IN},
+			#{outResult,jdbcType=VARCHAR,mode=OUT},
+			#{outResultReason,jdbcType=VARCHAR,mode=OUT}
+		)}
+  	</select>
+  	
+  	
+  	 <!-- 货源审核，抢单调价 -->
+   <select id="getPrice" resultType="com.brcc.business.priceChange.vo.PriceChangeVo"  parameterType="java.util.Map">
+    	SELECT
+
+			IF (m. STATUS = '10', 0.00, m.price) as carryPrice,
+ 			(m.price + m.owner_adjust_amt) as clientPrice,
+
+			IF (
+			t.client_rate_type = '1',
+			truncate(
+			(CAST(m.price as DECIMAL(10,2)) + m.owner_adjust_amt) / (1 + client_rate) ,
+			2
+		),
+		truncate(
+			(CAST(m.price as DECIMAL(10,2)) + m.owner_adjust_amt) * (1 - client_rate),
+			2
+		)
+			) as fPrice ,
+				m.publish_id as publishId,
+				m.price as price,
+				m.owner_adjust_amt as ownerAdjustAmt
+			FROM
+			apptms.price_client_rate t,
+			apptms.goodsorderm m
+		WHERE
+			t.client_id = m.company_id
+			AND m.publish_id = #{publishId}
+			AND t.carry_id = #{carryId}
+    
+    </select> 
+    <!-- 货主调价 -->
+  <select id="getPriceTJ" resultType="com.brcc.business.priceChange.vo.PriceChangeVo"  parameterType="java.util.Map">     
+		SELECT
+			IF (t.client_rate_type = '1',
+				truncate(
+					(p.client_price) / (1 + client_rate) ,
+					2),
+				truncate(
+					(p.client_price) * (1 - client_rate),
+					2)
+				) as fPrice ,
+			m.publish_id as publishId,
+			m.company_id as clientId,
+			m.price as price,
+			m.owner_adjust_amt as ownerAdjustAmt,
+			p.price_change_id as priceChangeId,
+			p.carry_price as carryPrice,
+			p.client_price as clientPrice,
+			p.diff_price as diffPrice
+		FROM
+			apptms.price_client_rate t,
+			apptms.goodsorderm m,
+			apptms.price_change p
+		WHERE
+			t.client_id = m.company_id
+			AND m.publish_id = #{publishId}
+			AND t.carry_id = #{carryId}
+			and p.price_change_id = #{priceChangeId}
+ </select> 
+  	
+  	
+  	
+  	
+</mapper>

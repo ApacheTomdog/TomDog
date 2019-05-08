@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="agencyInvoice">
+	<select id="list" resultType="com.brcc.business.agencyInvoice.vo.AgencyInvoiceVo" parameterType="com.brcc.business.agencyInvoice.vo.AgencyInvoiceQueryVo">
+  		SELECT 
+         	t.reinvoice_master_id as "reinvoiceMasterId",
+			t.reinvoice_master_num as "reinvoiceMasterNum",
+			t.reinvoice_no as "reinvoiceNo",
+			t.reinvoice_amount as "reinvoiceAmount",
+			t.reinvoice_weight as "reinvoiceWeight",
+			t.reinvoice_title_id as "reinvoiceTitleId",
+			t.reinvoice_title_name as "reinvoiceTitleName",
+			t.memo,
+			c.tax_num as "taxNum",
+			t.platform_id as "platformId",
+			t.reinvoice_status as "reinvoiceStatus",
+			t.drawer_name as "drawerName",
+			t.drawer_mobile as "drawerMobile",
+			t.drawer_address as "drawerAddress",
+			t.drawer_no as "drawerNo",
+			DATE_FORMAT(t.create_date, '%Y-%m-%d %H:%i') as "createDate",
+			t.create_person_id AS "createPersonId",
+			t.create_person_name as "createPersonName",
+			date_format(t.modify_date,'%Y-%m-%d %H:%i') as "modifyDate",
+			t.modify_person_id as "modifyPersonId",
+			IF(IFNULL(t.reinvoice_status, '10') = '10', '未开票',IF(IFNULL(t.reinvoice_status, '10') = '30','已开票','未开票')) AS 'inVoiceFlag',
+			t.modify_person_name as "modifyPersonName",
+			YEAR(now()) as "year",
+			month(now()) as "month",
+			DAY(now()) as "day",
+			t.if_print as "ifPrint",
+			if(t.if_print='1','已打印','未打印') as "printFlag",
+			print_num as "printNum",
+			if_fk_print as "ifFkPrint" ,
+			fk_print_num as "fkPrintNum",
+			DATE_FORMAT(t.reinvoice_time, '%Y-%m-%d %H:%i') as "reinvoiceTime",
+			b.tax_num as "registrationTaxNum",
+			b.tax_registration_flag as "taxRegistrationFlag",
+			b.withhold_protocol_flag as "withholdProtocolFlag",
+			t.start_plate as "startPlate",
+			t.end_plate as "endPlate",
+			t.vehicle_num as "vehicleNum",
+			t.good_type_desc as "goodTypeDesc",
+			t.no_tax_amount as "noTaxAmount",
+			t.tax_rate as "taxRate"
+		FROM (reinvoicemaster t,company c) 
+		  LEFT JOIN business_registration b on (t.drawer_no = b.id_num and t.platform_id = b.platform_id)
+		where t.platform_id=#{platformId}
+		     and c.seq_id = t.reinvoice_title_id
+			and t.reinvoice_title_id=#{companyId}
+			<if test="reinvoiceMasterNum != null and reinvoiceMasterNum != ''">
+				and t.reinvoice_master_num like CONCAT('%', #{reinvoiceMasterNum}, '%')
+			</if>
+			<if test="reinvoiceStatus != null and reinvoiceStatus != ''">
+				and t.reinvoice_status = #{reinvoiceStatus}
+			</if>
+			<if test="ifPrint != null">
+				and t.if_print = #{ifPrint}
+			</if>
+			<if test="ifFkPrint != null">
+				and t.if_fk_print = #{ifFkPrint}
+			</if>
+			<if test="taxRegistrationFlag != null">
+				and b.tax_registration_flag = #{taxRegistrationFlag}
+			</if>
+			<if test="withholdProtocolFlag != null">
+				and b.withhold_protocol_flag = #{withholdProtocolFlag}
+			</if>
+			<if test="reinvoiceNo != null and reinvoiceNo != ''">
+				and t.reinvoice_no like CONCAT('%',#{reinvoiceNo},'%')
+			</if>
+			<if test="rqStart != null and rqStart != ''">
+				and t.CREATE_DATE &gt;= STR_TO_DATE(CONCAT(#{rqStart},' :00'),'%Y-%m-%d %H:%i:%s')
+			</if>
+			<if test="rqEnd != null and rqEnd != ''">
+				and t.CREATE_DATE &lt;= STR_TO_DATE(CONCAT(#{rqEnd},' :59'),'%Y-%m-%d %H:%i:%s')
+			</if>
+			<if test="reinvoiceTimeStart != null and reinvoiceTimeStart != ''">
+				and t.reinvoice_time &gt;= STR_TO_DATE(CONCAT(#{reinvoiceTimeStart},' :00'),'%Y-%m-%d %H:%i:%s')
+			</if>
+			<if test="reinvoiceTimeEnd != null and reinvoiceTimeEnd != ''">
+				and t.reinvoice_time &lt;= STR_TO_DATE(CONCAT(#{reinvoiceTimeEnd},' :59'),'%Y-%m-%d %H:%i:%s')
+			</if>
+			<if test="ifTaxNum != null and ifTaxNum != ''">
+				<choose>
+					<when test="ifTaxNum == 'Y'.toString()">and b.tax_num is not null and b.status='30'</when>
+					<when test="ifTaxNum == 'N'.toString()">and b.tax_num is null and b.reg_id is null</when>
+					<when test="ifTaxNum == 'E'.toString()">and b.tax_num is null and b.reg_id is not null</when>
+				</choose>
+			</if>
+            ORDER BY t.create_date DESC
+	</select>
+	
+	<!-- 新增代开票 -->
+	<select id="addAgencyInvoicePro" parameterType="java.util.HashMap" statementType="CALLABLE" resultType="java.util.Map">
+		{call pro_yaoyea_reinvoice_master(
+			#{companyId,jdbcType=VARCHAR,mode=IN},
+			#{rqStartDlg,jdbcType=VARCHAR,mode=IN},
+			#{minAmount,jdbcType=VARCHAR,mode=IN},
+			#{userId,jdbcType=VARCHAR,mode=IN},
+			#{userName,jdbcType=VARCHAR,mode=IN},
+			#{outResult,jdbcType=VARCHAR,mode=OUT},
+			#{outResultReason,jdbcType=VARCHAR,mode=OUT}
+		)}
+  	</select>
+</mapper>
